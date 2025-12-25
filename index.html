@@ -3,390 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join Dots - Connect Four Game</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Christmas Quiz Challenge</title>
     <style>
-        @keyframes fade-in {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        @keyframes zoom-in-95 {
-            from { transform: scale(0.95); }
-            to { transform: scale(1); }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #165B33 0%, #BB2528 50%, #165B33 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        .animate-in {
-            animation: fade-in 0.3s ease-out, zoom-in-95 0.3s ease-out;
+
+        .container {
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
         }
-        .bg-clip-text {
-            -webkit-background-clip: text;
-            background-clip: text;
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
         }
-        .text-transparent {
-            color: transparent;
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #BB2528;
+            margin-bottom: 10px;
+        }
+
+        .gift-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #BB2528, #165B33);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .question-box {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .option-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            background: #f5f5f5;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background: #e0e0e0;
+            transform: scale(1.02);
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .option-btn.correct {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .option-btn.incorrect {
+            background: #f44336;
+            color: white;
+        }
+
+        .result-screen {
+            text-align: center;
+        }
+
+        .result-screen h2 {
+            font-size: 2.5em;
+            color: #BB2528;
+            margin-bottom: 20px;
+        }
+
+        .clue-box {
+            background: linear-gradient(135deg, #fff5f5, #f0fff0);
+            border: 3px solid #BB2528;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .clue-text {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #165B33;
+            line-height: 1.6;
+        }
+
+        .sparkle {
+            font-size: 2em;
+            animation: sparkle 1s infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        .score {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .question-text {
+                font-size: 1.2em;
+            }
+            
+            .option-btn {
+                padding: 15px;
+                font-size: 1em;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="container">
+        <div class="header">
+            <div class="gift-icon">🎁</div>
+            <h1>Christmas Quiz!</h1>
+        </div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
 
-        const ROWS = 6;
-        const COLS = 7;
-        const EMPTY = 0;
-        const PLAYER_RED = 1;
-        const PLAYER_YELLOW = 2;
+        <div id="quizContent"></div>
+    </div>
 
-        const JoinDotsGame = () => {
-          const [board, setBoard] = useState(() => 
-            Array(ROWS).fill().map(() => Array(COLS).fill(EMPTY))
-          );
-          const [currentPlayer, setCurrentPlayer] = useState(PLAYER_RED);
-          const [gameOver, setGameOver] = useState(false);
-          const [winner, setWinner] = useState(null);
-          const [winningCells, setWinningCells] = useState([]);
-          const [lastMove, setLastMove] = useState(null);
-          const [isAnimating, setIsAnimating] = useState(false);
-          const [hoveredColumn, setHoveredColumn] = useState(null);
-          const [dropAnimation, setDropAnimation] = useState(null);
-
-          const checkWinner = (board, row, col, player) => {
-            const directions = [
-              [0, 1], [1, 0], [1, 1], [1, -1]
-            ];
-
-            for (let [dx, dy] of directions) {
-              let count = 1;
-              let cells = [[row, col]];
-              
-              // Check positive direction
-              for (let i = 1; i < 4; i++) {
-                const newRow = row + dx * i;
-                const newCol = col + dy * i;
-                if (newRow >= 0 && newRow < ROWS && newCol >= 0 && newCol < COLS && 
-                    board[newRow][newCol] === player) {
-                  count++;
-                  cells.push([newRow, newCol]);
-                } else break;
-              }
-              
-              // Check negative direction
-              for (let i = 1; i < 4; i++) {
-                const newRow = row - dx * i;
-                const newCol = col - dy * i;
-                if (newRow >= 0 && newRow < ROWS && newCol >= 0 && newCol < COLS && 
-                    board[newRow][newCol] === player) {
-                  count++;
-                  cells.unshift([newRow, newCol]);
-                } else break;
-              }
-              
-              if (count >= 4) {
-                return cells.slice(0, 4);
-              }
+    <script>
+        const questions = [
+            {
+                question: "What's the most popular Christmas movie of all time?",
+                options: ["Home Alone", "It's a Wonderful Life", "Elf", "The Grinch"],
+                correct: 1
+            },
+            {
+                question: "In what year was the first Christmas card sent?",
+                options: ["1843", "1867", "1901", "1820"],
+                correct: 0
+            },
+            {
+                question: "What do people traditionally put on top of a Christmas tree?",
+                options: ["A star", "A bow", "A snowflake", "An ornament"],
+                correct: 0
+            },
+            {
+                question: "Which country started the tradition of putting up a Christmas tree?",
+                options: ["United States", "England", "Germany", "France"],
+                correct: 2
+            },
+            {
+                question: "Complete the lyric: 'Jingle bells, jingle bells, jingle all the ___'",
+                options: ["Day", "Way", "Night", "Time"],
+                correct: 1
+            },
+            {
+                question: "Finish the song: 'Rudolph the red-nosed reindeer, had a very shiny ___'",
+                options: ["Light", "Nose", "Coat", "Smile"],
+                correct: 1
+            },
+            {
+                question: "Complete: 'Deck the halls with boughs of ___'",
+                options: ["Holly", "Mistletoe", "Pine", "Ivy"],
+                correct: 0
             }
-            return null;
-          };
+        ];
 
-          const isDraw = (board) => {
-            return board[0].every(cell => cell !== EMPTY);
-          };
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
 
-          const makeMove = async (col) => {
-            if (gameOver || isAnimating || board[0][col] !== EMPTY) return;
+        function updateProgressBar() {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
 
-            setIsAnimating(true);
+        function showQuestion() {
+            const question = questions[currentQuestion];
+            const content = document.getElementById('quizContent');
             
-            // Find the lowest empty row
-            let row = -1;
-            for (let r = ROWS - 1; r >= 0; r--) {
-              if (board[r][col] === EMPTY) {
-                row = r;
-                break;
-              }
-            }
-
-            if (row === -1) {
-              setIsAnimating(false);
-              return;
-            }
-
-            // Animate piece drop
-            setDropAnimation({ col, targetRow: row, player: currentPlayer });
+            content.innerHTML = `
+                <div class="question-box">
+                    <div class="question-text">${question.question}</div>
+                    <div class="options">
+                        ${question.options.map((option, index) => `
+                            <button class="option-btn" onclick="selectAnswer(${index})">
+                                ${option}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
             
-            // Wait for animation
-            await new Promise(resolve => setTimeout(resolve, 400));
+            updateProgressBar();
+        }
 
-            const newBoard = board.map(r => [...r]);
-            newBoard[row][col] = currentPlayer;
-            setBoard(newBoard);
-            setLastMove([row, col]);
-            setDropAnimation(null);
-
-            // Check for winner
-            const winCells = checkWinner(newBoard, row, col, currentPlayer);
-            if (winCells) {
-              setWinningCells(winCells);
-              setWinner(currentPlayer);
-              setGameOver(true);
-            } else if (isDraw(newBoard)) {
-              setGameOver(true);
-              setWinner('draw');
-            } else {
-              setCurrentPlayer(currentPlayer === PLAYER_RED ? PLAYER_YELLOW : PLAYER_RED);
-            }
-
-            setIsAnimating(false);
-          };
-
-          const resetGame = () => {
-            setBoard(Array(ROWS).fill().map(() => Array(COLS).fill(EMPTY)));
-            setCurrentPlayer(PLAYER_RED);
-            setGameOver(false);
-            setWinner(null);
-            setWinningCells([]);
-            setLastMove(null);
-            setIsAnimating(false);
-            setHoveredColumn(null);
-            setDropAnimation(null);
-          };
-
-          const getColumnPreview = (col) => {
-            if (gameOver || isAnimating || board[0][col] !== EMPTY) return -1;
-            for (let r = ROWS - 1; r >= 0; r--) {
-              if (board[r][col] === EMPTY) return r;
-            }
-            return -1;
-          };
-
-          const FloatingOrbs = () => React.createElement('div', {
-            className: "absolute inset-0 overflow-hidden pointer-events-none"
-          }, [
-            React.createElement('div', {
-              key: 'orb1',
-              className: "absolute w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse",
-              style: {top: '10%', left: '10%', animationDelay: '0s', animationDuration: '4s'}
-            }),
-            React.createElement('div', {
-              key: 'orb2',
-              className: "absolute w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse",
-              style: {top: '60%', right: '10%', animationDelay: '2s', animationDuration: '5s'}
-            }),
-            React.createElement('div', {
-              key: 'orb3',
-              className: "absolute w-72 h-72 bg-pink-500/20 rounded-full blur-3xl animate-pulse",
-              style: {bottom: '10%', left: '50%', animationDelay: '1s', animationDuration: '6s'}
-            })
-          ]);
-
-          const GamePiece = ({ player, isWinning, isLastMove, isPreview, isDropping, dropRow }) => {
-            const baseClasses = "w-12 h-12 rounded-full transition-all duration-300 flex items-center justify-center relative";
+        function selectAnswer(index) {
+            if (selectedAnswer !== null) return;
             
-            let playerClasses = "";
-            let glowClasses = "";
+            selectedAnswer = index;
+            const buttons = document.querySelectorAll('.option-btn');
+            const correctIndex = questions[currentQuestion].correct;
             
-            if (player === PLAYER_RED) {
-              playerClasses = "bg-gradient-to-br from-red-400 via-red-500 to-red-600 shadow-lg shadow-red-500/50";
-              glowClasses = isWinning ? "animate-pulse shadow-2xl shadow-red-400/80" : "";
-            } else if (player === PLAYER_YELLOW) {
-              playerClasses = "bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 shadow-lg shadow-yellow-500/50";
-              glowClasses = isWinning ? "animate-pulse shadow-2xl shadow-yellow-400/80" : "";
+            buttons.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === correctIndex) {
+                    btn.classList.add('correct');
+                } else if (i === index && i !== correctIndex) {
+                    btn.classList.add('incorrect');
+                }
+            });
+            
+            if (index === correctIndex) {
+                score++;
             }
             
-            if (isPreview) {
-              playerClasses = player === PLAYER_RED 
-                ? "bg-gradient-to-br from-red-400/40 via-red-500/40 to-red-600/40 border-2 border-red-400/60"
-                : "bg-gradient-to-br from-yellow-400/40 via-yellow-500/40 to-orange-500/40 border-2 border-yellow-400/60";
-            }
+            setTimeout(() => {
+                currentQuestion++;
+                selectedAnswer = null;
+                
+                if (currentQuestion < questions.length) {
+                    showQuestion();
+                } else {
+                    showResult();
+                }
+            }, 1500);
+        }
 
-            const dropStyle = isDropping ? {
-              transform: `translateY(-${(5 - dropRow) * 64}px)`,
-              transition: 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-            } : {};
-
-            return React.createElement('div', {
-              className: `${baseClasses} ${playerClasses} ${glowClasses}`,
-              style: dropStyle
-            }, [
-              isLastMove && !isPreview && React.createElement('div', {
-                key: 'lastMove',
-                className: "absolute inset-0 rounded-full border-4 border-white animate-ping"
-              }),
-              isWinning && React.createElement('div', {
-                key: 'winning',
-                className: "absolute inset-0 rounded-full bg-white/30 animate-pulse"
-              })
-            ]);
-          };
-
-          return React.createElement('div', {
-            className: "min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4 relative"
-          }, [
-            React.createElement(FloatingOrbs, { key: 'orbs' }),
+        function showResult() {
+            const content = document.getElementById('quizContent');
             
-            React.createElement('div', {
-              key: 'game',
-              className: "relative z-10 w-full max-w-2xl"
-            }, [
-              // Header
-              React.createElement('div', {
-                key: 'header',
-                className: "text-center mb-8"
-              }, [
-                React.createElement('h1', {
-                  key: 'title',
-                  className: "text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-4"
-                }, "Join Dots"),
-                !gameOver && React.createElement('div', {
-                  key: 'currentPlayer',
-                  className: "flex items-center justify-center gap-4"
-                }, [
-                  React.createElement('span', {
-                    key: 'label',
-                    className: "text-xl text-white/80"
-                  }, "Current Player:"),
-                  React.createElement('div', {
-                    key: 'player',
-                    className: "flex items-center gap-2"
-                  }, [
-                    React.createElement(GamePiece, {
-                      key: 'piece',
-                      player: currentPlayer
-                    }),
-                    React.createElement('span', {
-                      key: 'name',
-                      className: "text-xl font-semibold text-white"
-                    }, currentPlayer === PLAYER_RED ? 'Red' : 'Yellow')
-                  ])
-                ])
-              ]),
-
-              // Game Board
-              React.createElement('div', {
-                key: 'board',
-                className: "bg-slate-800/40 backdrop-blur-lg border border-white/10 rounded-3xl p-8 shadow-2xl"
-              }, [
-                React.createElement('div', {
-                  key: 'grid',
-                  className: "grid grid-cols-7 gap-2 p-4 bg-gradient-to-br from-slate-700/50 to-slate-600/50 rounded-2xl backdrop-blur-sm border border-white/5"
-                }, Array.from({ length: ROWS }, (_, row) =>
-                  Array.from({ length: COLS }, (_, col) => {
-                    const cell = board[row][col];
-                    const isWinning = winningCells.some(([r, c]) => r === row && c === col);
-                    const isLastMove = lastMove && lastMove[0] === row && lastMove[1] === col;
-                    const previewRow = getColumnPreview(col);
-                    const showPreview = hoveredColumn === col && previewRow === row && !gameOver;
-                    const isDropping = dropAnimation && dropAnimation.col === col && row === dropAnimation.targetRow;
+            content.innerHTML = `
+                <div class="result-screen">
+                    <h2>🎄 Great Job! 🎄</h2>
+                    <div class="score">You got ${score} out of ${questions.length} correct!</div>
                     
-                    return React.createElement('div', {
-                      key: `${row}-${col}`,
-                      className: "w-16 h-16 bg-slate-800/60 rounded-xl border border-slate-600/30 flex items-center justify-center relative overflow-hidden cursor-pointer hover:bg-slate-700/60 transition-all duration-200",
-                      onClick: () => makeMove(col),
-                      onMouseEnter: () => setHoveredColumn(col),
-                      onMouseLeave: () => setHoveredColumn(null)
-                    }, [
-                      // Drop animation piece
-                      isDropping && React.createElement(GamePiece, {
-                        key: 'dropping',
-                        player: dropAnimation.player,
-                        isDropping: true,
-                        dropRow: row
-                      }),
-                      
-                      // Regular piece
-                      cell !== EMPTY && !isDropping && React.createElement(GamePiece, {
-                        key: 'piece',
-                        player: cell,
-                        isWinning: isWinning,
-                        isLastMove: isLastMove
-                      }),
-                      
-                      // Preview piece
-                      showPreview && cell === EMPTY && !isDropping && React.createElement(GamePiece, {
-                        key: 'preview',
-                        player: currentPlayer,
-                        isPreview: true
-                      })
-                    ]);
-                  })
-                ).flat())
-              ]),
+                    <div class="clue-box">
+                        <div class="sparkle">✨</div>
+                        <div class="clue-text">
+                            Your gift is hidden inside the table!
+                        </div>
+                        <div class="sparkle">✨</div>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 1.2em; margin-top: 20px;">
+                        Merry Christmas! 🎅
+                    </p>
+                </div>
+            `;
+            
+            updateProgressBar();
+        }
 
-              // Game Over Modal
-              gameOver && React.createElement('div', {
-                key: 'modal',
-                className: "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-              }, [
-                React.createElement('div', {
-                  key: 'modalContent',
-                  className: "bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-lg border border-white/20 rounded-3xl p-8 text-center shadow-2xl transform animate-in"
-                }, [
-                  React.createElement('div', {
-                    key: 'message',
-                    className: "mb-6"
-                  }, [
-                    winner === 'draw' ? React.createElement('div', { key: 'draw' }, [
-                      React.createElement('div', {
-                        key: 'emoji',
-                        className: "text-6xl mb-4"
-                      }, "🤝"),
-                      React.createElement('h2', {
-                        key: 'title',
-                        className: "text-3xl font-bold text-white mb-2"
-                      }, "It's a Draw!"),
-                      React.createElement('p', {
-                        key: 'subtitle',
-                        className: "text-white/70"
-                      }, "Great game! Want to play again?")
-                    ]) : React.createElement('div', { key: 'winner' }, [
-                      React.createElement('div', {
-                        key: 'piece',
-                        className: "flex justify-center mb-4"
-                      }, [
-                        React.createElement(GamePiece, {
-                          key: 'winnerPiece',
-                          player: winner
-                        })
-                      ]),
-                      React.createElement('h2', {
-                        key: 'title',
-                        className: "text-3xl font-bold text-white mb-2"
-                      }, `${winner === PLAYER_RED ? 'Red' : 'Yellow'} Wins! 🎉`),
-                      React.createElement('p', {
-                        key: 'subtitle',
-                        className: "text-white/70"
-                      }, "Congratulations on the victory!")
-                    ])
-                  ]),
-                  
-                  React.createElement('button', {
-                    key: 'playAgain',
-                    onClick: resetGame,
-                    className: "px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
-                  }, "Play Again")
-                ])
-              ]),
-
-              // Reset Button
-              React.createElement('div', {
-                key: 'reset',
-                className: "text-center mt-6"
-              }, [
-                React.createElement('button', {
-                  key: 'newGame',
-                  onClick: resetGame,
-                  className: "px-6 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white/80 hover:text-white rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/10 hover:border-white/20"
-                }, "New Game")
-              ])
-            ])
-          ]);
-        };
-
-        ReactDOM.render(React.createElement(JoinDotsGame), document.getElementById('root'));
+        // Start the quiz
+        showQuestion();
     </script>
 </body>
 </html>
