@@ -758,7 +758,7 @@
                         <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
                             <span className="dip-inline-name" style={{color:pc.text,fontWeight:700}}>{pn}</span>
                             <div className="dip-inline-bar">
-                                <div className={'dip-inline-fill '+color} style={{width:Math.min(fillPct,100)+'%'}}>
+                                <div className={'dip-inline-fill '+color} style={{width:Math.min(fillPct,100)+'%',background:pc.border}}>
                                     {fillPct > 15 && <span className="dip-inline-pct">{fillPct.toFixed(0)+'%'}</span>}
                                 </div>
                                 {loaded > 0 && <div className="dip-load-overlay" style={{width:Math.min(newPct,100)+'%'}}>
@@ -964,6 +964,13 @@
                     const tc = isLocal ? LOCAL_TRAILERS : TRAILERS;
                     const mv = tc[trailerNumber]?.products[product]?.[compIndex] || 0;
                     nc[compIndex] = { ...nc[compIndex], product, maxVolume: mv, volume: mv, assignedTank: '' };
+                    // Auto-assign if only one matching tank
+                    const autoDip = findDipsForPO(stop.poNumber);
+                    if (autoDip) {
+                        const autoType = getProductType(product);
+                        const autoTanks = Object.keys(autoDip.latestData).filter(k => matchProductToTank(autoType, k));
+                        if (autoTanks.length === 1) nc[compIndex].assignedTank = autoTanks[0];
+                    }
                     return { ...stop, compartments: nc };
                 }));
             };
@@ -1176,6 +1183,9 @@
                                                                 const tanks = getMatchingTanks(stop.poNumber, comp.product);
                                                                 if (tanks.length === 0) return null;
                                                                 const pcol = getProductColor(comp.product);
+                                                                if (tanks.length === 1) {
+                                                                    return <div style={{marginTop:'0.1rem',fontSize:'0.5rem',color:pcol.text,fontWeight:600}}>{'→ '+tanks[0]}</div>;
+                                                                }
                                                                 return <div style={{marginTop:'0.2rem'}}>
                                                                     <select style={{width:'100%',padding:'0.2rem 0.25rem',border:'1px solid '+(comp.assignedTank?pcol.border:'#CBD5E1'),borderRadius:'4px',fontSize:'0.5625rem',fontFamily:'inherit',background:comp.assignedTank?pcol.bg:'white',fontWeight:comp.assignedTank?700:400,color:comp.assignedTank?pcol.text:'#64748B'}} value={comp.assignedTank} onChange={e => updateCompartmentTank(stop.id, ci, e.target.value)}>
                                                                         <option value="">{'🎯 Assign tank...'}</option>
