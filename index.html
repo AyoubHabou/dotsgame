@@ -1048,9 +1048,7 @@
                     const eTanks = stop.poNumber ? Object.keys(findDipsForPO(stop.poNumber)?.latestData || {}) : [];
                     stop.compartments.forEach((c,i) => { 
                         if (c.enabled && c.volume > 0) {
-                            // Only show tank number if assignedTank exists, is not empty, AND is found in the tank list
-                            const tankIndex = (c.assignedTank && c.assignedTank.trim() !== '') ? eTanks.indexOf(c.assignedTank) : -1;
-                            const ti = tankIndex >= 0 ? tankIndex + 1 : 0;
+                            const ti = c.assignedTank ? eTanks.indexOf(c.assignedTank) + 1 : 0;
                             email += `${i+1} - ${c.volume.toLocaleString()} ${c.product}${ti > 0 ? ' → Tank ' + ti : ''}\n`;
                         }
                     });
