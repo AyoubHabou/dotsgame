@@ -386,6 +386,9 @@
             };
 
             console.log(`Parsing ${rows.length} rows from Google Sheet...`);
+            console.log('First row structure:', JSON.stringify(rows[0]?.c?.slice(0, 10)));
+            console.log('Table has', data.table.cols?.length, 'columns');
+            
             // Debug: log first 30 non-empty B column values
             let debugCount = 0;
             for (let di = 0; di < Math.min(rows.length, 200); di++) {
@@ -411,8 +414,10 @@
                 // Could be: AM\PM, AM\\PM, AM/PM, AM PM, etc.
                 const isStationHeader = colBupper.includes('AM') && colBupper.includes('PM') && colB.length < 20;
                 if (isStationHeader) {
+                    console.log(`✓ Found station header at row ${i}: B="${colB}"`);
                     // Save previous station
                     if (currentStation && Object.keys(currentStation.latestData).length > 0) {
+                        console.log(`  Saving previous station: PO=${currentStation.po}, products=${Object.keys(currentStation.latestData).length}`);
                         stations.push(currentStation);
                     }
 
@@ -443,6 +448,7 @@
 
                 // Detect "Date" row (capacity row)
                 if (colB === 'Date' && currentStation) {
+                    console.log(`✓ Found Date row at row ${i} for station PO=${currentStation.po}`);
                     // Look at the row ABOVE for product names (cols C=2, E=4, G=6, I=8)
                     // And sometimes 2 rows above
                     let nameRow = null;
