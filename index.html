@@ -214,6 +214,8 @@
                 if (match) {
                     const data = JSON.parse(match[1]);
                     if (data.status === 'ok' && data.table) {
+                        console.log('gviz table:', data.table.cols?.length, 'cols,', data.table.rows?.length, 'rows');
+                        console.log('First 3 rows:', JSON.stringify(data.table.rows?.slice(0,3)));
                         const result = parseDipsFromGoogleData(data);
                         if (result && result.length > 0) return result;
                         errors.push('gviz: parsed but no station data found');
@@ -282,54 +284,74 @@
         }
 
         function parseDipsFromCSV(csvText) {
-            // Parse CSV format of dips sheet
-            const lines = csvText.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+            // Parse CSV — same logic as gviz but from CSV rows
+            // CSV cells may have quotes, handle carefully
+            const parseCSVRow = (line) => {
+                const cells = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i];
+                    if (ch === '"') { inQuotes = !inQuotes; continue; }
+                    if (ch === ',' && !inQuotes) { cells.push(current.trim()); current = ''; continue; }
+                    current += ch;
+                }
+                cells.push(current.trim());
+                return cells;
+            };
+
+            const lines = csvText.split('\n').map(parseCSVRow);
             const stations = [];
             let currentStation = null;
-            let productNames = [];
-            let productCaps = [];
+            let productCols = [];
+            let hasCapRow = false;
 
             for (let i = 0; i < lines.length; i++) {
                 const row = lines[i];
                 if (!row || row.length < 3) continue;
+                const colB = row[1] || '';
 
-                // Detect station header (contains AM/PM pattern)
-                if (row[1] && row[1].includes('AM') && row[1].includes('PM')) {
+                if (colB.includes('AM') && colB.includes('PM')) {
                     if (currentStation && Object.keys(currentStation.latestData).length > 0) stations.push(currentStation);
-                    const poMatch = row[2]?.match(/(\d{5})/);
-                    const po = poMatch ? poMatch[1] : '';
-                    const name = row[3] ? row[3].split('\n')[0].trim() : '';
+                    let po = '';
+                    for (let c = 2; c <= 4; c++) { const m = (row[c]||'').match(/(\d{5})/); if (m && !po) po = m[1]; }
+                    const name = (row[3] || '').split('\n')[0].trim();
                     currentStation = { po, name, products: [], latestDay: '', latestData: {} };
-                    productNames = [];
-                    productCaps = [];
+                    productCols = [];
+                    hasCapRow = false;
                     continue;
                 }
 
-                // Detect product names row (before Date row)
-                if (row[1] === 'Date' && currentStation) {
-                    // The previous row had product names, the current row has capacities
-                    const prevRow = lines[i-1];
+                if (colB === 'Date' && currentStation) {
+                    let nameRow = null;
+                    for (let back = 1; back <= 2; back++) {
+                        const prev = lines[i - back];
+                        if (!prev) continue;
+                        if ([2,4,6,8].some(c => (prev[c]||'').match(/reg|diesel|super|premium|supreme/i))) { nameRow = prev; break; }
+                    }
+                    productCols = [];
                     for (const col of [2, 4, 6, 8]) {
-                        if (prevRow?.[col] && row[col]) {
-                            productNames.push({ name: prevRow[col], col: col, capCol: col + 1 });
-                            productCaps.push(Number(row[col]) || 0);
-                            currentStation.products.push({ name: prevRow[col], capacity: Number(row[col]) || 0 });
+                        const pName = nameRow ? (nameRow[col] || '') : '';
+                        const cap = Number(row[col]) || 0;
+                        if (pName && cap > 0) {
+                            productCols.push({ name: pName.trim(), capacity: cap, colVol: col, colUll: col + 1 });
+                            currentStation.products.push({ name: pName.trim(), capacity: cap });
                         }
                     }
+                    hasCapRow = productCols.length > 0;
                     continue;
                 }
 
-                // Day rows
                 const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
-                if (currentStation && productNames.length > 0 && dayNames.includes(row[1]?.toUpperCase())) {
-                    productNames.forEach((p, idx) => {
-                        const vol = Number(row[p.col]) || 0;
-                        const ull = Number(row[p.col + 1]) || 0;
+                if (hasCapRow && currentStation && dayNames.includes(colB.toUpperCase())) {
+                    for (const pc of productCols) {
+                        const vol = Number(row[pc.colVol]) || 0;
+                        const ull = Number(row[pc.colUll]) || 0;
                         if (vol > 0) {
-                            currentStation.latestData[p.name] = { volume: Math.round(vol), ullage: Math.round(ull || (productCaps[idx] - vol)), capacity: Math.round(productCaps[idx]) };
-                            currentStation.latestDay = row[1].toUpperCase();
+                            currentStation.latestData[pc.name] = { volume: Math.round(vol), ullage: Math.round(ull || (pc.capacity - vol)), capacity: Math.round(pc.capacity) };
+                            currentStation.latestDay = colB.toUpperCase();
                         }
-                    });
+                    }
                 }
             }
             if (currentStation && Object.keys(currentStation.latestData).length > 0) stations.push(currentStation);
@@ -337,64 +359,128 @@
         }
 
         function parseDipsFromGoogleData(data) {
-            // Parse the Google Sheets JSON format into our dips structure
+            // Parse Google Sheets gviz JSON into dips structure
+            // Sheet layout (0-indexed columns):
+            // Station header: B(1)="AM\PM" or "AM\\PM", C(2)=PO info like "BU# 41501", D(3)=Address
+            // Product names row: C(2), E(4), G(6), I(8) = product names like "REG #1", "DIESEL"
+            // Date/capacity row: B(1)="Date", C(2), E(4), G(6), I(8) = capacities
+            // Day data rows: B(1)=day name, C(2)/D(3)=vol/ullage, E(4)/F(5)=vol/ullage, etc.
             const rows = data.table.rows;
             const stations = [];
             let currentStation = null;
             let productCols = [];
-            let capacityRow = false;
+            let hasCapacityRow = false;
+
+            const getVal = (cells, idx) => cells?.[idx]?.v;
+            const getStr = (cells, idx) => {
+                const v = cells?.[idx]?.v;
+                if (v === null || v === undefined) return '';
+                return String(v);
+            };
+            const getNum = (cells, idx) => {
+                const v = cells?.[idx]?.v;
+                if (v === null || v === undefined || v === '') return null;
+                const n = Number(v);
+                return isNaN(n) ? null : n;
+            };
+
+            console.log(`Parsing ${rows.length} rows from Google Sheet...`);
 
             for (let i = 0; i < rows.length; i++) {
-                const cells = rows[i].c;
+                const cells = rows[i]?.c;
                 if (!cells) continue;
-                const getVal = (idx) => cells[idx]?.v;
-                const getStr = (idx) => String(cells[idx]?.v || '');
 
-                // Detect station header (AM\PM in col B)
-                if (getStr(1).includes('AM') && getStr(1).includes('PM')) {
-                    if (currentStation && currentStation.products.length > 0) stations.push(currentStation);
-                    const poRaw = getStr(2);
-                    const poMatch = poRaw.match(/(\d{5})/);
-                    const po = poMatch ? poMatch[1] : '';
-                    const nameRaw = getStr(3);
-                    const name = nameRaw ? nameRaw.split('\n')[0].trim() : '';
-                    currentStation = { po, name, products: [], latestDay: '', latestData: {} };
-                    productCols = [];
-                    capacityRow = false;
-                    continue;
-                }
+                const colB = getStr(cells, 1);
 
-                // Detect "Date" row = capacity row
-                if (getStr(1) === 'Date' && currentStation) {
-                    // Previous row had product names
-                    const prevCells = rows[i-1]?.c;
-                    if (prevCells) {
-                        for (const col of [2, 4, 6, 8]) {
-                            const pName = prevCells[col]?.v;
-                            const cap = getVal(col);
-                            if (pName && cap) {
-                                productCols.push({ name: String(pName).trim(), capacity: Number(cap), colVol: col, colUll: col + 1 });
-                                currentStation.products.push({ name: String(pName).trim(), capacity: Number(cap) });
-                            }
+                // Detect station header: column B contains "AM" and "PM" (various formats)
+                if (colB && (colB.includes('AM') && colB.includes('PM')) || colB.match(/AM\s*[\\/\\\\]\s*PM/i)) {
+                    // Save previous station
+                    if (currentStation && Object.keys(currentStation.latestData).length > 0) {
+                        stations.push(currentStation);
+                    }
+
+                    // Extract PO from column C or nearby
+                    let po = '';
+                    let name = '';
+                    for (let c = 2; c <= 4; c++) {
+                        const cv = getStr(cells, c);
+                        const poMatch = cv.match(/(\d{5})/);
+                        if (poMatch && !po) po = poMatch[1];
+                    }
+                    // Name from column D (address)
+                    const rawName = getStr(cells, 3);
+                    name = rawName ? rawName.split('\n')[0].split('\\n')[0].trim() : '';
+                    // Sometimes name is in C if no PO prefix
+                    if (!name) {
+                        const rawC = getStr(cells, 2);
+                        if (rawC && !rawC.match(/^\d{5}$/) && !rawC.match(/^#/)) {
+                            name = rawC.split('\n')[0].split('\\n')[0].trim();
                         }
                     }
-                    capacityRow = true;
+
+                    currentStation = { po, name, products: [], latestDay: '', latestData: {} };
+                    productCols = [];
+                    hasCapacityRow = false;
                     continue;
                 }
 
-                // Data rows (days)
+                // Detect "Date" row (capacity row)
+                if (colB === 'Date' && currentStation) {
+                    // Look at the row ABOVE for product names (cols C=2, E=4, G=6, I=8)
+                    // And sometimes 2 rows above
+                    let nameRow = null;
+                    for (let back = 1; back <= 2; back++) {
+                        const prevCells = rows[i - back]?.c;
+                        if (!prevCells) continue;
+                        // Check if this row has product names in the expected columns
+                        let hasNames = false;
+                        for (const col of [2, 4, 6, 8]) {
+                            const v = getStr(prevCells, col);
+                            if (v && (v.match(/reg|diesel|super|premium|supreme/i) || v.match(/^REG/))) {
+                                hasNames = true;
+                                break;
+                            }
+                        }
+                        if (hasNames) { nameRow = prevCells; break; }
+                    }
+
+                    productCols = [];
+                    // Product columns are at indices 2,4,6,8 (C,E,G,I)
+                    // Capacities are in the Date row at the same columns
+                    // Ullage columns are at 3,5,7,9 (D,F,H,J)
+                    for (const col of [2, 4, 6, 8]) {
+                        const pName = nameRow ? getStr(nameRow, col) : '';
+                        const cap = getNum(cells, col);
+                        if (pName && cap && cap > 0) {
+                            const cleanName = pName.trim();
+                            productCols.push({
+                                name: cleanName,
+                                capacity: cap,
+                                colVol: col,      // volume in same column as capacity
+                                colUll: col + 1   // ullage in next column (D,F,H,J)
+                            });
+                            currentStation.products.push({ name: cleanName, capacity: cap });
+                        }
+                    }
+                    hasCapacityRow = productCols.length > 0;
+                    if (hasCapacityRow) {
+                        console.log(`  Station "${currentStation.name}" (PO ${currentStation.po}): ${productCols.length} products found: ${productCols.map(p=>p.name).join(', ')}`);
+                    }
+                    continue;
+                }
+
+                // Day data rows
                 const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
-                if (capacityRow && currentStation && dayNames.includes(getStr(1).toUpperCase())) {
-                    const day = getStr(1).toUpperCase();
-                    let hasVol = false;
+                if (hasCapacityRow && currentStation && dayNames.includes(colB.toUpperCase())) {
+                    const day = colB.toUpperCase();
                     for (const pc of productCols) {
-                        const vol = getVal(pc.colVol);
-                        const ull = getVal(pc.colUll);
-                        if (vol !== null && vol !== undefined && vol !== '') {
-                            hasVol = true;
+                        const vol = getNum(cells, pc.colVol);
+                        const ull = getNum(cells, pc.colUll);
+                        // Only update if we have actual volume data (not just ullage = capacity)
+                        if (vol !== null && vol > 0) {
                             currentStation.latestData[pc.name] = {
-                                volume: Math.round(Number(vol)),
-                                ullage: Math.round(Number(ull || (pc.capacity - Number(vol)))),
+                                volume: Math.round(vol),
+                                ullage: Math.round(ull !== null ? ull : (pc.capacity - vol)),
                                 capacity: Math.round(pc.capacity)
                             };
                             currentStation.latestDay = day;
@@ -402,8 +488,12 @@
                     }
                 }
             }
-            if (currentStation && currentStation.products.length > 0) stations.push(currentStation);
-            return stations.filter(s => Object.keys(s.latestData).length > 0);
+            // Don't forget last station
+            if (currentStation && Object.keys(currentStation.latestData).length > 0) {
+                stations.push(currentStation);
+            }
+            console.log(`Parsed ${stations.length} stations with data`);
+            return stations;
         }
 
         // ==================== HELPERS ====================
