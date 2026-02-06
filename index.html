@@ -8,157 +8,161 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #1E5F8C; --primary-dark: #14426B; --primary-light: #2B7DB8;
-            --accent: #00B4D8; --success: #10B981; --danger: #EF4444; --warning: #F59E0B;
-            --bg-main: #F8FAFC; --bg-card: #FFFFFF;
-            --text-primary: #0F172A; --text-secondary: #475569; --text-tertiary: #94A3B8;
-            --border: #E2E8F0; --border-focus: #3B82F6;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 4px 12px rgba(0,0,0,0.08); --shadow-lg: 0 12px 32px rgba(0,0,0,0.1);
-            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
-        }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #F8FAFC 0%, #E8F3F9 100%); color: var(--text-primary); line-height: 1.6; min-height: 100vh; padding: 1rem; }
-        .app-container { max-width: 1800px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); padding: 1.5rem 2rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
-        .header::before { content: ''; position: absolute; top: -50%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%); border-radius: 50%; }
-        .header-content { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
-        .header-left { display: flex; align-items: center; gap: 1.25rem; }
-        .logo-circle { width: 64px; height: 64px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800; color: var(--primary); box-shadow: var(--shadow-md); }
-        .header-text h1 { color: white; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.15rem; letter-spacing: -0.02em; }
-        .header-text p { color: rgba(255,255,255,0.9); font-size: 0.875rem; font-weight: 500; }
-        .header-stats { display: flex; gap: 1.5rem; }
-        .stat-box { background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 0.5rem 1rem; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.2); }
-        .stat-label { color: rgba(255,255,255,0.8); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-value { color: white; font-size: 1.25rem; font-weight: 800; margin-top: 0.15rem; }
-
-        /* Tabs */
-        .tab-nav { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: white; padding: 0.375rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
-        .tab-btn { flex: 1; padding: 0.75rem 1.25rem; border: none; border-radius: var(--radius-sm); font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit; }
-        .tab-btn.active { background: var(--primary); color: white; box-shadow: var(--shadow-md); }
-        .tab-btn:hover:not(.active) { background: #F1F5F9; }
-        .tab-badge { background: rgba(239,68,68,0.9); color: white; font-size: 0.6875rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 20px; }
-        .tab-btn.active .tab-badge { background: rgba(255,255,255,0.3); }
-
-        /* Layout */
-        .main-layout { display: grid; grid-template-columns: 1fr 450px; gap: 1.5rem; align-items: start; }
-        .card { background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); overflow: hidden; }
-        .card-header { background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); padding: 1.25rem 1.5rem; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
-        .card-icon { font-size: 1.25rem; }
-        .card-title { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); flex: 1; }
-        .card-body { padding: 1.5rem; }
-
-        /* Forms */
-        .form-section { margin-bottom: 1.5rem; }
-        .section-title { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
-        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-        .form-group { margin-bottom: 0.75rem; }
-        .form-group-full { grid-column: 1 / -1; }
-        .form-label { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.375rem; }
-        .form-label-required::after { content: '*'; color: var(--danger); margin-left: 0.25rem; }
-        .form-input, .form-select, .form-textarea { width: 100%; padding: 0.625rem 0.875rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 0.875rem; font-family: inherit; transition: all 0.2s; background: white; }
-        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-        .form-textarea { resize: vertical; min-height: 60px; }
-
-        /* Compartments */
-        .compartments-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
-        .compartment-card { background: #F8FAFC; border: 2px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; transition: all 0.2s; cursor: pointer; position: relative; }
-        .compartment-card.active { background: #EFF6FF; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30,95,140,0.1); }
-        .compartment-number { font-size: 0.6875rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem; }
-        .compartment-card.active .compartment-number { color: var(--primary); }
-        .compartment-product { margin-bottom: 0.375rem; }
-        .compartment-product-select { width: 100%; padding: 0.375rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.75rem; background: white; }
-        .compartment-volume { display: flex; align-items: center; gap: 0.25rem; }
-        .compartment-volume-input { width: 100%; padding: 0.375rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8125rem; font-weight: 600; text-align: center; }
-        .compartment-max { font-size: 0.625rem; color: var(--text-tertiary); margin-top: 0.25rem; }
-        .compartment-toggle { position: absolute; top: 0.375rem; right: 0.375rem; width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; font-size: 0.625rem; color: white; }
-        .compartment-card.active .compartment-toggle { background: var(--primary); border-color: var(--primary); }
-
-        /* Stops */
-        .stops-container { margin-top: 1.5rem; }
-        .stop-card { background: #F8FAFC; border: 2px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; }
-        .stop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-        .stop-badge { background: var(--primary); color: white; padding: 0.2rem 0.625rem; border-radius: 20px; font-size: 0.6875rem; font-weight: 700; }
-        .stop-remove { padding: 0.375rem 0.75rem; background: var(--danger); color: white; border: none; border-radius: var(--radius-sm); font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
-        .stop-remove:hover { background: #DC2626; }
-
-        /* Buttons */
-        .btn { padding: 0.75rem 1.25rem; border: none; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #059669; transform: translateY(-1px); }
-        .btn-secondary { background: #F1F5F9; color: var(--text-primary); border: 2px solid var(--border); }
-        .btn-secondary:hover { background: #E2E8F0; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-warning:hover { background: #D97706; }
-        .btn-block { width: 100%; }
-        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-
-        /* Email */
-        .email-preview { position: sticky; top: 1rem; }
-        .email-content { background: #F8FAFC; border: 2px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; font-family: 'Courier New', monospace; font-size: 0.8125rem; line-height: 1.7; white-space: pre-wrap; max-height: calc(100vh - 350px); overflow-y: auto; margin-bottom: 0.75rem; }
-        .empty-state { text-align: center; padding: 3rem 2rem; }
-        .empty-icon { font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.3; }
-        .empty-text { color: var(--text-tertiary); font-size: 0.9375rem; font-weight: 600; }
-        .total-display { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; padding: 0.75rem 1.25rem; border-radius: var(--radius-md); margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
-        .total-label { font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .total-value { font-size: 1.25rem; font-weight: 800; }
-
-        /* Dips Dashboard */
-        .dips-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
-        .dips-summary-card { background: white; border: 2px solid var(--border); border-radius: var(--radius-md); padding: 0.875rem 1rem; text-align: center; }
-        .dips-summary-value { font-size: 1.5rem; font-weight: 800; }
-        .dips-summary-label { font-size: 0.6875rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.125rem; }
-        .dips-summary-card.alert .dips-summary-value { color: var(--danger); }
-        .dips-summary-card.warning .dips-summary-value { color: var(--warning); }
-        .dips-summary-card.ok .dips-summary-value { color: var(--success); }
-        .dips-toolbar { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; }
-        .dips-search { flex: 1; min-width: 200px; padding: 0.625rem 1rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 0.875rem; font-family: inherit; }
-        .dips-search:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-        .dips-filter-btn { padding: 0.625rem 1rem; border: 2px solid var(--border); border-radius: var(--radius-sm); background: white; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-        .dips-filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .dips-filter-btn:hover:not(.active) { background: #F1F5F9; }
-        .dips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1rem; }
-        .dip-card { background: white; border: 2px solid var(--border); border-radius: var(--radius-md); overflow: hidden; transition: all 0.2s; }
-        .dip-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
-        .dip-card-header { padding: 0.875rem 1rem; background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
-        .dip-station-name { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
-        .dip-po-badge { background: var(--primary); color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.6875rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; margin-left: 0.5rem; }
-        .dip-card-body { padding: 0.75rem 1rem; }
-        .dip-product-row { margin-bottom: 0.625rem; }
-        .dip-product-row:last-child { margin-bottom: 0; }
-        .dip-product-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
-        .dip-product-name { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.02em; }
-        .dip-product-stats { font-size: 0.6875rem; color: var(--text-tertiary); font-weight: 600; }
-        .dip-product-stats span { font-weight: 700; }
-        .dip-bar-track { width: 100%; height: 22px; background: #F1F5F9; border-radius: 6px; overflow: hidden; position: relative; }
-        .dip-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; position: relative; }
-        .dip-bar-fill.green { background: linear-gradient(90deg, #10B981, #34D399); }
-        .dip-bar-fill.yellow { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
-        .dip-bar-fill.orange { background: linear-gradient(90deg, #F97316, #FB923C); }
-        .dip-bar-fill.red { background: linear-gradient(90deg, #EF4444, #F87171); }
-        .dip-bar-label { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 0.6875rem; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-        .dip-bar-label.dark { color: var(--text-primary); }
-        .dip-ullage-highlight { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6875rem; font-weight: 700; padding: 0.125rem 0.375rem; border-radius: 4px; margin-top: 0.125rem; }
-        .dip-ullage-highlight.low { background: #FEF2F2; color: #DC2626; }
-        .dip-ullage-highlight.med { background: #FFFBEB; color: #D97706; }
-        .dip-ullage-highlight.ok { background: #F0FDF4; color: #16A34A; }
-        .dip-update-badge { font-size: 0.625rem; color: var(--text-tertiary); font-weight: 500; padding-top: 0.375rem; text-align: right; }
-
-        @media (max-width: 1400px) { .main-layout { grid-template-columns: 1fr; } .email-preview { position: relative; top: 0; } }
-        @media (max-width: 1024px) { .compartments-grid { grid-template-columns: repeat(3, 1fr); } .form-grid { grid-template-columns: 1fr; } .header-stats { display: none; } .dips-grid { grid-template-columns: 1fr; } .dips-summary { grid-template-columns: 1fr; } }
-        @media (max-width: 640px) { .compartments-grid { grid-template-columns: repeat(2, 1fr); } .header-left { flex-direction: column; text-align: center; } .btn-group { flex-direction: column; } .tab-nav { flex-wrap: wrap; } .tab-btn { font-size: 0.8125rem; padding: 0.625rem 0.75rem; } }
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--primary:#1E5F8C;--primary-dark:#14426B;--primary-light:#2B7DB8;--accent:#00B4D8;--success:#10B981;--danger:#EF4444;--warning:#F59E0B;--bg-main:#F8FAFC;--bg-card:#FFFFFF;--text-primary:#0F172A;--text-secondary:#475569;--text-tertiary:#94A3B8;--border:#E2E8F0;--border-focus:#3B82F6;--shadow-sm:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 12px rgba(0,0,0,0.08);--shadow-lg:0 12px 32px rgba(0,0,0,0.1);--radius-sm:8px;--radius-md:12px;--radius-lg:16px}
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(135deg,#F8FAFC 0%,#E8F3F9 100%);color:var(--text-primary);line-height:1.6;min-height:100vh;padding:1rem}
+        .app-container{max-width:1800px;margin:0 auto}
+        .header{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);padding:1.25rem 2rem;border-radius:var(--radius-lg);margin-bottom:1.25rem;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}
+        .header::before{content:'';position:absolute;top:-50%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 70%);border-radius:50%}
+        .header-content{position:relative;display:flex;align-items:center;justify-content:space-between;gap:1.5rem}
+        .header-left{display:flex;align-items:center;gap:1rem}
+        .logo-circle{width:56px;height:56px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;color:var(--primary);box-shadow:var(--shadow-md)}
+        .header-text h1{color:white;font-size:1.35rem;font-weight:800;letter-spacing:-0.02em}
+        .header-text p{color:rgba(255,255,255,0.9);font-size:0.8rem;font-weight:500}
+        .header-stats{display:flex;gap:1.25rem}
+        .stat-box{background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);padding:0.4rem 0.875rem;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.2)}
+        .stat-label{color:rgba(255,255,255,0.8);font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+        .stat-value{color:white;font-size:1.15rem;font-weight:800}
+        .tab-nav{display:flex;gap:0.5rem;margin-bottom:1.25rem;background:white;padding:0.375rem;border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .tab-btn{flex:1;padding:0.65rem 1rem;border:none;border-radius:var(--radius-sm);font-size:0.875rem;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:0.5rem;font-family:inherit}
+        .tab-btn.active{background:var(--primary);color:white;box-shadow:var(--shadow-md)}
+        .tab-btn:hover:not(.active){background:#F1F5F9}
+        .tab-badge{background:rgba(239,68,68,0.9);color:white;font-size:0.625rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:20px}
+        .tab-btn.active .tab-badge{background:rgba(255,255,255,0.3)}
+        .main-layout{display:grid;grid-template-columns:1fr 420px;gap:1.25rem;align-items:start}
+        .card{background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);overflow:hidden}
+        .card-header{background:linear-gradient(135deg,#F8FAFC 0%,#F1F5F9 100%);padding:1rem 1.25rem;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:0.75rem}
+        .card-icon{font-size:1.15rem}
+        .card-title{font-size:1rem;font-weight:700;color:var(--text-primary);flex:1}
+        .card-body{padding:1.25rem}
+        .form-section{margin-bottom:1.25rem}
+        .section-title{font-size:0.875rem;font-weight:700;color:var(--text-primary);margin-bottom:0.625rem;display:flex;align-items:center;gap:0.5rem}
+        .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.625rem}
+        .form-group{margin-bottom:0.625rem}
+        .form-group-full{grid-column:1/-1}
+        .form-label{display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem}
+        .form-label-required::after{content:'*';color:var(--danger);margin-left:0.25rem}
+        .form-input,.form-select,.form-textarea{width:100%;padding:0.5rem 0.75rem;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:0.8125rem;font-family:inherit;transition:all 0.2s;background:white}
+        .form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+        .form-textarea{resize:vertical;min-height:50px}
+        .compartments-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;margin-top:0.5rem}
+        .compartment-card{background:#F8FAFC;border:2px solid var(--border);border-radius:var(--radius-md);padding:0.625rem;transition:all 0.2s;cursor:pointer;position:relative}
+        .compartment-card.active{background:#EFF6FF;border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,95,140,0.1)}
+        .compartment-number{font-size:0.625rem;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem}
+        .compartment-card.active .compartment-number{color:var(--primary)}
+        .compartment-product{margin-bottom:0.3rem}
+        .compartment-product-select{width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:6px;font-size:0.6875rem;background:white;font-family:inherit}
+        .compartment-volume{display:flex;align-items:center;gap:0.25rem}
+        .compartment-volume-input{width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-weight:600;text-align:center}
+        .compartment-volume-input.over-standard{border-color:#9333ea;background:#FAF5FF}
+        .compartment-max{font-size:0.5625rem;color:var(--text-tertiary);margin-top:0.2rem}
+        .compartment-toggle{position:absolute;top:0.3rem;right:0.3rem;width:15px;height:15px;border:2px solid var(--border);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;font-size:0.5625rem;color:white}
+        .compartment-card.active .compartment-toggle{background:var(--primary);border-color:var(--primary)}
+        .stops-container{margin-top:1.25rem}
+        .stop-card{background:#F8FAFC;border:2px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1rem}
+        .stop-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+        .stop-badge{background:var(--primary);color:white;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.625rem;font-weight:700}
+        .stop-remove{padding:0.3rem 0.625rem;background:var(--danger);color:white;border:none;border-radius:var(--radius-sm);font-size:0.75rem;font-weight:600;cursor:pointer}
+        .stop-remove:hover{background:#DC2626}
+        .btn{padding:0.625rem 1rem;border:none;border-radius:var(--radius-sm);font-size:0.8125rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;font-family:inherit}
+        .btn-primary{background:var(--primary);color:white}
+        .btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+        .btn-success{background:var(--success);color:white}
+        .btn-success:hover{background:#059669;transform:translateY(-1px)}
+        .btn-secondary{background:#F1F5F9;color:var(--text-primary);border:2px solid var(--border)}
+        .btn-secondary:hover{background:#E2E8F0}
+        .btn-warning{background:var(--warning);color:white}
+        .btn-block{width:100%}
+        .btn-group{display:flex;gap:0.4rem;flex-wrap:wrap}
+        .email-preview{position:sticky;top:1rem}
+        .email-content{background:#F8FAFC;border:2px solid var(--border);border-radius:var(--radius-md);padding:1rem;font-family:'Courier New',monospace;font-size:0.75rem;line-height:1.7;white-space:pre-wrap;max-height:calc(100vh - 400px);overflow-y:auto;margin-bottom:0.625rem}
+        .empty-state{text-align:center;padding:2.5rem 1.5rem}
+        .empty-icon{font-size:2.5rem;margin-bottom:0.5rem;opacity:0.3}
+        .empty-text{color:var(--text-tertiary);font-size:0.875rem;font-weight:600}
+        .total-display{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);color:white;padding:0.625rem 1rem;border-radius:var(--radius-md);margin-top:0.625rem;display:flex;align-items:center;justify-content:space-between}
+        .total-label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+        .total-value{font-size:1.15rem;font-weight:800}
+        .load-warning{background:#FEF2F2;border:2px solid #FECACA;border-radius:var(--radius-sm);padding:0.5rem 0.75rem;margin-top:0.5rem;font-size:0.6875rem;color:#DC2626;font-weight:600;display:flex;align-items:center;gap:0.375rem}
+        .load-ok{background:#F0FDF4;border:2px solid #BBF7D0;color:#16A34A}
+        .purple-note{color:#7C3AED;font-weight:700;font-size:0.5625rem;margin-top:0.15rem;background:#FAF5FF;padding:0.15rem 0.3rem;border-radius:3px;display:inline-block}
+        /* Dips inline card under PO selection */
+        .dip-inline{background:white;border:2px solid #E0E7FF;border-radius:var(--radius-md);padding:0.75rem;margin-top:0.5rem;margin-bottom:0.5rem}
+        .dip-inline-title{font-size:0.6875rem;font-weight:700;color:var(--primary);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.375rem}
+        .dip-inline-row{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem}
+        .dip-inline-row:last-child{margin-bottom:0}
+        .dip-inline-name{font-size:0.625rem;font-weight:700;color:var(--text-secondary);min-width:80px;text-transform:uppercase}
+        .dip-inline-bar{flex:1;height:18px;background:#F1F5F9;border-radius:5px;overflow:hidden;position:relative}
+        .dip-inline-fill{height:100%;border-radius:5px;transition:width 0.4s}
+        .dip-inline-fill.green{background:linear-gradient(90deg,#10B981,#34D399)}
+        .dip-inline-fill.yellow{background:linear-gradient(90deg,#F59E0B,#FBBF24)}
+        .dip-inline-fill.orange{background:linear-gradient(90deg,#F97316,#FB923C)}
+        .dip-inline-fill.red{background:linear-gradient(90deg,#EF4444,#F87171)}
+        .dip-inline-pct{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:0.5625rem;font-weight:700;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.2)}
+        .dip-inline-pct.dark{color:var(--text-primary);right:auto;left:4px}
+        .dip-inline-stats{font-size:0.5625rem;color:var(--text-tertiary);font-weight:600;min-width:110px;text-align:right}
+        .dip-load-overlay{height:100%;position:absolute;top:0;left:0;background:repeating-linear-gradient(45deg,rgba(124,58,237,0.15),rgba(124,58,237,0.15) 3px,transparent 3px,transparent 6px);border-right:2px solid #7C3AED;border-radius:5px;transition:width 0.3s}
+        .dip-load-label{position:absolute;top:50%;transform:translateY(-50%);font-size:0.5rem;font-weight:800;color:#7C3AED;white-space:nowrap}
+        .overload-warning{font-size:0.5625rem;color:#DC2626;font-weight:700;margin-top:0.15rem;background:#FEF2F2;padding:0.15rem 0.375rem;border-radius:3px;display:inline-block}
+        /* Dips dashboard */
+        .dips-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:1rem}
+        .dips-summary-card{background:white;border:2px solid var(--border);border-radius:var(--radius-md);padding:0.75rem;text-align:center}
+        .dips-summary-value{font-size:1.35rem;font-weight:800}
+        .dips-summary-label{font-size:0.625rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-top:0.1rem}
+        .dips-summary-card.alert .dips-summary-value{color:var(--danger)}
+        .dips-summary-card.warning .dips-summary-value{color:var(--warning)}
+        .dips-summary-card.ok .dips-summary-value{color:var(--success)}
+        .dips-toolbar{display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+        .dips-search{flex:1;min-width:180px;padding:0.5rem 0.875rem;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:0.8125rem;font-family:inherit}
+        .dips-search:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+        .dips-filter-btn{padding:0.5rem 0.875rem;border:2px solid var(--border);border-radius:var(--radius-sm);background:white;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit}
+        .dips-filter-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
+        .dips-filter-btn:hover:not(.active){background:#F1F5F9}
+        .dips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:0.75rem}
+        .dip-card{background:white;border:2px solid var(--border);border-radius:var(--radius-md);overflow:hidden;transition:all 0.2s}
+        .dip-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+        .dip-card-header{padding:0.75rem;background:linear-gradient(135deg,#F8FAFC 0%,#F1F5F9 100%);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
+        .dip-station-name{font-size:0.8125rem;font-weight:700;color:var(--text-primary);line-height:1.3}
+        .dip-po-badge{background:var(--primary);color:white;padding:0.1rem 0.4rem;border-radius:12px;font-size:0.625rem;font-weight:700;white-space:nowrap;flex-shrink:0;margin-left:0.5rem}
+        .dip-card-body{padding:0.625rem 0.75rem}
+        .dip-product-row{margin-bottom:0.5rem}
+        .dip-product-row:last-child{margin-bottom:0}
+        .dip-product-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.2rem}
+        .dip-product-name{font-size:0.6875rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase}
+        .dip-product-stats{font-size:0.625rem;color:var(--text-tertiary);font-weight:600}
+        .dip-product-stats span{font-weight:700}
+        .dip-bar-track{width:100%;height:20px;background:#F1F5F9;border-radius:5px;overflow:hidden;position:relative}
+        .dip-bar-fill{height:100%;border-radius:5px;transition:width 0.6s;position:relative}
+        .dip-bar-fill.green{background:linear-gradient(90deg,#10B981,#34D399)}
+        .dip-bar-fill.yellow{background:linear-gradient(90deg,#F59E0B,#FBBF24)}
+        .dip-bar-fill.orange{background:linear-gradient(90deg,#F97316,#FB923C)}
+        .dip-bar-fill.red{background:linear-gradient(90deg,#EF4444,#F87171)}
+        .dip-bar-label{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:0.625rem;font-weight:700;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.2)}
+        .dip-bar-label.dark{color:var(--text-primary)}
+        .dip-ullage-highlight{display:inline-flex;align-items:center;gap:0.2rem;font-size:0.625rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-top:0.1rem}
+        .dip-ullage-highlight.low{background:#FEF2F2;color:#DC2626}
+        .dip-ullage-highlight.med{background:#FFFBEB;color:#D97706}
+        .dip-ullage-highlight.ok{background:#F0FDF4;color:#16A34A}
+        .dip-update-badge{font-size:0.5625rem;color:var(--text-tertiary);font-weight:500;padding-top:0.3rem;text-align:right}
+        .refresh-btn{background:var(--accent);color:white;border:none;padding:0.5rem 0.875rem;border-radius:var(--radius-sm);font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:0.3rem;transition:all 0.2s}
+        .refresh-btn:hover{background:#0096B7;transform:translateY(-1px)}
+        .refresh-btn.loading{opacity:0.6;pointer-events:none}
+        .product-badge{display:inline-block;padding:0.1rem 0.375rem;border-radius:4px;font-size:0.5625rem;font-weight:700;margin-right:0.2rem;margin-bottom:0.15rem}
+        .product-badge.gas{background:#DBEAFE;color:#1D4ED8}
+        .product-badge.diesel{background:#FEF3C7;color:#92400E}
+        .product-badge.super{background:#EDE9FE;color:#6D28D9}
+        .product-badge.ethanol{background:#D1FAE5;color:#065F46}
+        .product-badge.other{background:#F1F5F9;color:#475569}
+        @media(max-width:1400px){.main-layout{grid-template-columns:1fr}.email-preview{position:relative;top:0}}
+        @media(max-width:1024px){.compartments-grid{grid-template-columns:repeat(3,1fr)}.form-grid{grid-template-columns:1fr}.header-stats{display:none}.dips-grid{grid-template-columns:1fr}.dips-summary{grid-template-columns:1fr}}
+        @media(max-width:640px){.compartments-grid{grid-template-columns:repeat(2,1fr)}.header-left{flex-direction:column;text-align:center}.btn-group{flex-direction:column}.tab-nav{flex-wrap:wrap}.tab-btn{font-size:0.75rem;padding:0.5rem 0.625rem}}
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useCallback } = React;
 
         const TRAILERS = {
             "92": {"name": "92", "products": {"Reg Gas": [14000,7000,7000,5000,5000,16000], "ETHANOL": [12500,6500,6000,5000,5000,15500], "Clear Diesel": [12500,6500,6000,4800,4800,14000], "Jet Fuel": [13000,6600,6600,4700,4700,15000], "Super Gas": [15000,8000,7000,5000,5000,16000], "Dyed Diesel": [12500,6500,6000,4800,4800,14000], "Furnace": [12500,6500,6000,4800,4800,14000], "Stove": [12500,6500,6000,4800,4800,14000], "CBOB": []}},
@@ -180,15 +184,194 @@
             "88": {"name": "88", "products": {"ETHANOL": [49000], "Clear Diesel": [47000], "Reg Gas": [], "Super Gas": [], "Jet Fuel": [], "Dyed Diesel": [47000], "Furnace": [47000], "Stove": [47000], "CBOB": []}},
             "89": {"name": "89", "products": {"ETHANOL": [49000], "Clear Diesel": [47000], "Reg Gas": [], "Super Gas": [], "Jet Fuel": [], "Dyed Diesel": [47000], "Furnace": [47000], "Stove": [47000], "CBOB": []}}
         };
-
         const LOCAL_TRAILERS = {"92":{"name":"92","products":{"Reg Gas":[14000,8000,7000,5000,5000,16000],"ETHANOL":[13000,6500,7000,5000,5000,15500],"Clear Diesel":[13000,6500,6000,4800,4800,14500],"Jet Fuel":[13000,6600,6600,4700,4700,15000],"Super Gas":[14000,8000,7000,5000,5000,16000],"Dyed Diesel":[13000,6500,6000,4800,4800,14500],"Furnace":[13000,6500,6000,4800,4800,14500],"Stove":[13000,6500,6000,4800,4800,14500],"CBOB":[]}},"95":{"name":"95","products":{"Reg Gas":[14000,8000,7000,5000,5000,16000],"ETHANOL":[13000,6500,7000,5000,5000,15500],"Clear Diesel":[13000,6500,6000,4800,4800,14500],"Jet Fuel":[13000,6600,6600,4700,4700,15000],"Super Gas":[14000,8000,7000,5000,5000,16000],"Dyed Diesel":[13000,6500,6000,4800,4800,14500],"Furnace":[13000,6500,6000,4800,4800,14500],"Stove":[13000,6500,6000,4800,4800,14500],"CBOB":[]}},"98":{"name":"98","products":{"Reg Gas":[14500,6000,11000,8000,4000,16000],"ETHANOL":[13000,5500,10000,8000,4000,15000],"Clear Diesel":[13000,5300,9600,7500,4000,14500],"Jet Fuel":[13000,5500,9300,7500,4000,14000],"Super Gas":[14500,6000,11000,8000,4000,16000],"Dyed Diesel":[13000,5300,9600,7500,4000,14500],"Furnace":[13000,5300,9600,7500,4000,14500],"Stove":[13000,5300,9600,7500,4000,14500],"CBOB":[14000,6000,9500,8000,4000,16000]}},"99":{"name":"99","products":{"Reg Gas":[14500,6000,11000,8000,4000,16000],"ETHANOL":[13000,5500,10000,8000,4000,15000],"Clear Diesel":[13000,5300,9600,7500,4000,14500],"Jet Fuel":[13000,5500,9300,7500,4000,14000],"Super Gas":[14500,6000,11000,8000,4000,16000],"Dyed Diesel":[13000,5300,9600,7500,4000,14500],"Furnace":[13000,5300,9600,7500,4000,14500],"Stove":[13000,5300,9600,7500,4000,14500],"CBOB":[14000,6000,9500,8000,4000,16000]}},"100":{"name":"100","products":{"Reg Gas":[14500,5000,12000,8000,5000,16000],"ETHANOL":[13000,5000,11000,7000,5000,15000],"Clear Diesel":[13000,4500,9800,7000,5000,14500],"Jet Fuel":[13000,5000,9500,7000,5000,15000],"Super Gas":[14500,5000,12000,8000,5000,16000],"Dyed Diesel":[13000,4500,9800,7000,5000,14500],"Furnace":[13000,4500,9800,7000,5000,14500],"Stove":[13000,4500,9800,7000,5000,14500],"CBOB":[13500,5000,10500,8000,5000,15500],"Jet Fuel T105/106":[12000,4000,8000,6000,4000,14000]}},"101":{"name":"101","products":{"Reg Gas":[14500,5000,12000,8000,5000,16000],"ETHANOL":[13000,5000,11000,7000,5000,15000],"Clear Diesel":[13000,4500,9800,7000,5000,14500],"Jet Fuel":[13000,5000,9500,7000,5000,15000],"Super Gas":[14500,5000,12000,8000,5000,16000],"Dyed Diesel":[13000,4500,9800,7000,5000,14500],"Furnace":[13000,4500,9800,7000,5000,14500],"Stove":[13000,4500,9800,7000,5000,14500],"CBOB":[13500,5000,10500,8000,5000,15500],"Jet Fuel T105/106":[12000,4000,8000,6000,4000,14000]}},"102":{"name":"102","products":{"Reg Gas":[14500,5000,12000,8000,5000,16000],"ETHANOL":[13000,5000,11000,7000,5000,15000],"Clear Diesel":[13000,4500,9800,7000,5000,14500],"Jet Fuel":[13000,5000,9500,7000,5000,15000],"Super Gas":[14500,5000,12000,8000,5000,16000],"Dyed Diesel":[13000,4500,9800,7000,5000,14500],"Furnace":[13000,4500,9800,7000,5000,14500],"Stove":[13000,4500,9800,7000,5000,14500],"CBOB":[13500,5000,10500,8000,5000,15500],"Jet Fuel T105/106":[12000,4000,8000,6000,4000,14000]}},"105":{"name":"105","products":{"Reg Gas":[14500,5000,12000,8000,5000,16000],"ETHANOL":[13000,5000,11000,7000,5000,15000],"Clear Diesel":[13000,4500,9800,7000,5000,14500],"Jet Fuel":[13000,5000,9500,7000,5000,15000],"Super Gas":[14500,5000,12000,8000,5000,16000],"Dyed Diesel":[13000,4500,9800,7000,5000,14500],"Furnace":[13000,4500,9800,7000,5000,14500],"Stove":[13000,4500,9800,7000,5000,14500],"CBOB":[13500,5000,10500,8000,5000,15500],"Jet Fuel T105/106":[12000,4000,8000,6000,4000,14000]}},"106":{"name":"106","products":{"Reg Gas":[14500,5000,12000,8000,5000,16000],"ETHANOL":[13000,5000,11000,7000,5000,15000],"Clear Diesel":[13000,4500,9800,7000,5000,14500],"Jet Fuel":[13000,5000,9500,7000,5000,15000],"Super Gas":[14500,5000,12000,8000,5000,16000],"Dyed Diesel":[13000,4500,9800,7000,5000,14500],"Furnace":[13000,4500,9800,7000,5000,14500],"Stove":[13000,4500,9800,7000,5000,14500],"CBOB":[13500,5000,10500,8000,5000,15500],"Jet Fuel T105/106":[12000,4000,8000,6000,4000,14000]}},"107":{"name":"107","products":{"Reg Gas":[14500,5000,12000,8000,5000,16000],"ETHANOL":[13000,5000,11000,7000,5000,15000],"Clear Diesel":[13000,4500,9800,7000,5000,14500],"Jet Fuel":[13000,5000,9500,7000,5000,15000],"Super Gas":[14500,5000,12000,8000,5000,16000],"Dyed Diesel":[13000,4500,9800,7000,5000,14500],"Furnace":[13000,4500,9800,7000,5000,14500],"Stove":[13000,4500,9800,7000,5000,14500],"CBOB":[13500,5000,10500,8000,5000,15500],"Jet Fuel T105/106":[12000,4000,8000,6000,4000,14000]}},"103":{"name":"103","products":{"Reg Gas":[14500,5500,11500,11000,5000,13000],"ETHANOL":[14000,4500,9700,10000,4500,13000],"Clear Diesel":[13000,4500,9500,8000,5000,13000],"Jet Fuel":[13500,4500,10000,10000,4500,12000],"Super Gas":[14500,5500,11500,11000,5000,13000],"Dyed Diesel":[13000,4500,9500,8000,5000,13000],"Furnace":[13000,4500,9500,8000,5000,13000],"Stove":[13000,4500,9500,8000,5000,13000],"CBOB":[14000,5000,9500,10500,5500,13000]}},"104":{"name":"104","products":{"Reg Gas":[14500,5500,11500,11000,5000,13000],"ETHANOL":[14000,4500,9700,10000,4500,13000],"Clear Diesel":[13000,4500,9500,8000,5000,13000],"Jet Fuel":[13500,4500,10000,10000,4500,12000],"Super Gas":[14500,5500,11500,11000,5000,13000],"Dyed Diesel":[13000,4500,9500,8000,5000,13000],"Furnace":[13000,4500,9500,8000,5000,13000],"Stove":[13000,4500,9500,8000,5000,13000],"CBOB":[14000,5000,9500,10500,5500,13000]}},"108":{"name":"108","products":{"Reg Gas":[14500,5500,11500,11000,5000,13000],"ETHANOL":[14000,4500,9700,10000,4500,13000],"Clear Diesel":[13000,4500,9500,8000,5000,13000],"Jet Fuel":[13500,4500,10000,10000,4500,12000],"Super Gas":[14500,5500,11500,11000,5000,13000],"Dyed Diesel":[13000,4500,9500,8000,5000,13000],"Furnace":[13000,4500,9500,8000,5000,13000],"Stove":[13000,4500,9500,8000,5000,13000],"CBOB":[14000,5000,9500,10500,5500,13000]}},"109":{"name":"109","products":{"Reg Gas":[14500,5500,11500,11000,5000,13000],"ETHANOL":[14000,4500,9700,10000,4500,13000],"Clear Diesel":[13000,4500,9500,8000,5000,13000],"Jet Fuel":[13500,4500,10000,10000,4500,12000],"Super Gas":[14500,5500,11500,11000,5000,13000],"Dyed Diesel":[13000,4500,9500,8000,5000,13000],"Furnace":[13000,4500,9500,8000,5000,13000],"Stove":[13000,4500,9500,8000,5000,13000],"CBOB":[14000,5000,9500,10500,5500,13000]}},"86":{"name":"86","products":{"ETHANOL":[49000],"Clear Diesel":[48000],"Reg Gas":[],"Super Gas":[],"Jet Fuel":[],"Dyed Diesel":[48000],"Furnace":[48000],"Stove":[48000],"CBOB":[]}},"87":{"name":"87","products":{"ETHANOL":[49000],"Clear Diesel":[48000],"Reg Gas":[],"Super Gas":[],"Jet Fuel":[],"Dyed Diesel":[48000],"Furnace":[48000],"Stove":[48000],"CBOB":[]}},"88":{"name":"88","products":{"ETHANOL":[49000],"Clear Diesel":[48000],"Reg Gas":[],"Super Gas":[],"Jet Fuel":[],"Dyed Diesel":[48000],"Furnace":[48000],"Stove":[48000],"CBOB":[]}},"89":{"name":"89","products":{"ETHANOL":[49000],"Clear Diesel":[48000],"Reg Gas":[],"Super Gas":[],"Jet Fuel":[],"Dyed Diesel":[48000],"Furnace":[48000],"Stove":[48000],"CBOB":[]}}};
-
         const LOCAL_TERMINALS = ["IOL Ottawa", "Shell Ottawa", "Suncor Ottawa", "Valero Maitland"];
-
         const PO_DATA = {"41501":{"name":"241 Boul. L'A\u00e9roport, Gat.","address":"241 Boul. L'A\u00e9roport, Gatineau","terminals":{"Suncor Montr\u00e9al":{"customer":"5066544 Parkland Fuel Corp.","account":"541501","products":{"E15":"519000","Super":"241800","Clear Diesel":"292QC9"}},"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"26386","products":{"E15":"E15TTV","Super":"P10TTV","Clear":"ULSD9"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"124289","Super":"124290","Clear":"123873"}}}},"41691":{"name":"1385 de la V\u00e9rendrye, Gat.","address":"1385 de la V\u00e9rendrye, Gatineau","terminals":{"Suncor Montr\u00e9al":{"customer":"5066544 Parkland Fuel Corp.","account":"541691","products":{"E10":"300663","Super":"241800","Clear Diesel":"292QC9"}},"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"26005","products":{"E10":"E10TTV","Super":"P10TTV","Clear":"ULSD9"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"124289","Super":"124290","Clear":"123873"}}}},"41857":{"name":"108 Boul. Gr\u00e9ber, Gat.","address":"108 Boul. Gr\u00e9ber, Gatineau","terminals":{"Suncor Montr\u00e9al":{"customer":"5066544 Parkland Fuel Corp.","account":"541857","products":{"E10":"300663","Super":"241800"}},"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"60","products":{"E10":"E10TTV","Super":"P10TTV"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"124289","Super":"124290"}}}},"41808":{"name":"3 Ave., Gatineau","address":"3 Ave., Gatineau","terminals":{"Suncor Montr\u00e9al":{"customer":"5066544 Parkland Fuel Corp.","account":"541808","products":{"E10":"300663","Super":"241800","Clear Diesel":"292QC9"}},"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"36184","products":{"E10":"E10TTV","Super":"P10TTV","Clear":"ULSD9"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"124289","Super":"124290","Clear":"123873"}}}},"41496":{"name":"591 Boul. des Grives, Gat.","address":"591 Boul. des Grives, Gatineau","terminals":{"Suncor Montr\u00e9al":{"customer":"5066544 Parkland Fuel Corp.","account":"541496","products":{"E15":"300663","Super":"241800","Clear Diesel":"292QC9"}},"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"26364","products":{"E15":"E15TTV","Super":"P10TTV","Clear":"ULSD9"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"124289","Super":"124290","Clear":"123873"}}}},"41727":{"name":"267 Front St., Gat.","address":"267 Front St., Gatineau","terminals":{"Suncor Montr\u00e9al":{"customer":"5066544 Parkland Fuel Corp.","account":"541727","products":{"E10":"300663","Super":"241800","Clear Diesel":"292QC9"}},"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"26206","products":{"E10":"E10TTV","Super":"P10TTV","Clear":"ULSD9"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"124289","Super":"124290","Clear":"123873"}}}},"52244":{"name":"1020 Hwy 148, Bryson QC","address":"1020 Hwy 148, Bryson, QC","terminals":{"Suncor Montr\u00e9al":{"customer":"5066544 Parkland Fuel Corp.","account":"552244","products":{"E10":"300663","Super":"241800","Clear Diesel":"292QC9"}},"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"46583","products":{"E10":"E10TTV","Super":"P10TTV","Clear":"ULSD9"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"124289","Super":"124290","Clear":"123873"}}}},"28138":{"name":"2461 Boul. Henri-Ford, Vaudreuil QC","address":"2461 Boul. Henri-Ford, Vaudreuil, QC","terminals":{"Valero Montr\u00e9al":{"customer":"8145402 Les Petroles Parkland 2","account":"26316","products":{"Clear Diesel":"ULSD1"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"Clear Diesel":"123873"}},"Shell Ottawa":{"customer":"Valero 342087","destination":"10002","products":{"Clear Diesel":"404981"}}}},"52277":{"name":"557 Chem. Kipawa (Crevier Stn), Temiscaming","address":"557 Chem. Kipawa, Temiscaming","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"105773"}},"Valero Montr\u00e9al":{"customer":"\u00c9nergie Valero Montr\u00e9al","account":"68365300","products":{"E10":"E10LDA"}},"Suncor Ottawa":{"customer":"","account":"","products":{"E10":"300195"}}}},"52293":{"name":"Migizy Gas (Crevier Stn): 100 Ogima St., Kipawa","address":"100 Ogima St., Kipawa","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070311","products":{"E10":"105773","Super":"105140"}},"Valero Montr\u00e9al":{"customer":"\u00c9nergie Valero Montr\u00e9al","account":"8377700","products":{"E10":"E10LDA","Super":"P10LDA"}},"Suncor Ottawa":{"customer":"","account":"","products":{"E10":"300195","Super":"300143"}},"Valero Maitland":{"customer":"","account":"","products":{"E10":"E10WL","Super":"SU"}}}},"41916":{"name":"31194 Hwy 17, Chalk River Ont.","address":"31194 Hwy 17, Chalk River, Ont.","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070916","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"42445":{"name":"1271 Pembroke St. W., Pembroke","address":"1271 Pembroke St. W., Pembroke","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070611","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"41900":{"name":"6500 Russell Rd., Carlsbad Springs","address":"6500 Russell Rd., Carlsbad Springs","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342080388","products":{"E10":"124289","Super":"128427"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV"}},"Valero Maitland":{"customer":"8124105 Maitland Petroles Parkland","account":"82786 Parkland Retail","products":{"E10":"E10TTV","Premium":"SUTTV","Clear":"ULSON"}}}},"41902":{"name":"4755 St. Catherine St., St. Isidore","address":"4755 St. Catherine St., St. Isidore","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342082767","products":{"E10":"124289","Super":"126450"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV"}}}},"41908":{"name":"2749 Laurier St., Rockland, Ont.","address":"2749 Laurier St., Rockland, Ont.","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070761","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"41989":{"name":"992 Burton Rd (Vars)","address":"992 Burton Rd, Vars","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070753","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"43349":{"name":"1536 Main Street Est., Hawkesbury","address":"1536 Main Street Est., Hawkesbury","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342082767","products":{"E10":"105773","Super":"126280","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}},"Valero Maitland":{"customer":"8124105 Maitland Petroles Parkland","account":"82786 Parkland Retail","products":{"E10":"E10WL","Premium":"SU","Clear Diesel":""}},"Suncor":{"customer":"","account":"","products":{"E10":"300195","Super":"300143","Clear Diesel":"300255"}}}},"42222":{"name":"1725 Prescott & Russell County Rd. 4, L'Orignal","address":"1725 Prescott & Russell County Rd. 4, L'Orignal","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070223","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"21820":{"name":"Pik Fuels: 648 Inninaig Inamo, Golden Lake","address":"648 Inninaig Inamo, Golden Lake","terminals":{"IOL Ottawa":{"customer":"342087 (Valero)","destination":"342070245","products":{"E10":"105773","Premium":"126280","Clear Diesel":"123873","Dyed Diesel":"105023"}},"Valero Montr\u00e9al":{"customer":"","account":"","products":{"E10":"","Premium":"","Clear":"","Dyed":""}}}},"41934":{"name":"Antrim TS, 580 White Lake Rd., Arnprior","address":"580 White Lake Rd., Arnprior","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070353","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}},"Parkland Montr\u00e9al":{"customer":"87877 \u2013 ARNPRIOR 41934","account":"41934","products":{"Clear bio-Diesel (B5)":"BU005C","ARM 5 FOR CLEAR BIO DIESEL B5":""}}}},"41403":{"name":"85 Madawaska Blvd., Arnprior","address":"85 Madawaska Blvd., Arnprior","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070322","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"41511":{"name":"3467 Hawthorne Rd., Ottawa","address":"3467 Hawthorne Rd., Ottawa","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070270","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"41470":{"name":"3199 Hawthorne Rd., Ottawa","address":"3199 Hawthorne Rd., Ottawa","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342070726","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Diesel":"ULSDON2"}},"Parkland Montr\u00e9al":{"customer":"87878 \u2013 OTTAWA","account":"41470","products":{"B5 - Clear bio-Diesel":"BU005C","ARM 5 FOR CLEAR BIO DIESEL B5":""}}}},"42370":{"name":"2688 St. Joseph Blvd, Orleans, Ont.","address":"2688 St. Joseph Blvd, Orleans, Ont.","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342082767","products":{"E10":"105773","Super":"126280","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10LDA","Premium":"P10LDA","Clear":"ULSOM1"}}}},"52210":{"name":"1797 St. Joseph Blvd., Orleans, Ont.","address":"1797 St. Joseph Blvd., Orleans, Ont.","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342082767","products":{"E10":"124289","Super":"126450","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E10":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"41926":{"name":"12456 Hwy 2, Morrisburg, Ont.","address":"12456 Hwy 2, Morrisburg, Ont.","terminals":{"Valero Maitland":{"customer":"8124105 Maitland Petroles Parkland","account":"41926","products":{"E15":"E15TTV","Premium":"P10TTV","Clear Diesel":"ULSON1"}},"IOL Ottawa":{"customer":"Valero 342087","destination":"342082767","products":{"E10":"124289","Super":"126450","Clear Diesel":"123873"}},"Valero Montr\u00e9al":{"customer":"8145404 Les Petroles Parkland 3","account":"980018","products":{"E49":"E10TTV","Premium":"P10TTV","Clear":"ULSON2"}}}},"41903":{"name":"370 McGill St., Hawkesbury","address":"370 McGill St., Hawkesbury","terminals":{"IOL Ottawa":{"customer":"Valero 342087","destination":"342082767","products":{"E10":"124289","Super":"128427","Clear Diesel":"123873"}}}}};
+        let DIPS_DATA = [{"po": "41501", "name": "241 Boul. L'Aéroport", "products": [{"name": "REG #1", "capacity": 47500}, {"name": "REG #2", "capacity": 47500}, {"name": "PREMIUM", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 14414, "ullage": 33086, "capacity": 47500}, "REG #2": {"volume": 14618, "ullage": 32882, "capacity": 47500}, "PREMIUM": {"volume": 13131, "ullage": 10619, "capacity": 23750}, "DIESEL": {"volume": 6336, "ullage": 17414, "capacity": 23750}}}, {"po": "41691", "name": "1385 Boul. de la Vérendrye 723", "products": [{"name": "REG", "capacity": 33000}, {"name": "SUPER", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 19994, "ullage": 13006, "capacity": 33000}, "SUPER": {"volume": 10086, "ullage": 13664, "capacity": 23750}, "DIESEL": {"volume": 8275, "ullage": 15475, "capacity": 23750}}}, {"po": "41857", "name": "108 Boul Gréber, Gat.", "products": [{"name": "REG", "capacity": 47500}, {"name": "PREMIUM", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 30443, "ullage": 17057, "capacity": 47500}, "PREMIUM": {"volume": 15242, "ullage": 8508, "capacity": 23750}}}, {"po": "41808", "name": "3 Ave - Gatineau", "products": [{"name": "DIESEL", "capacity": 31000}, {"name": "REG #1", "capacity": 34485}, {"name": "REG #2", "capacity": 34485}, {"name": "PREMIUM", "capacity": 34485}], "latestDay": "WEDNESDAY", "latestData": {"DIESEL": {"volume": 14527, "ullage": 16473, "capacity": 31000}, "REG #1": {"volume": 11423, "ullage": 23062, "capacity": 34485}, "REG #2": {"volume": 8547, "ullage": 25938, "capacity": 34485}, "PREMIUM": {"volume": 8225, "ullage": 26260, "capacity": 34485}}}, {"po": "41496", "name": "", "products": [{"name": "REG #1", "capacity": 60000}, {"name": "REG #2", "capacity": 60000}, {"name": "PREMIUM", "capacity": 33250}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 27089, "ullage": 32911, "capacity": 60000}, "REG #2": {"volume": 26574, "ullage": 33426, "capacity": 60000}, "PREMIUM": {"volume": 6694, "ullage": 26556, "capacity": 33250}, "DIESEL": {"volume": 14992, "ullage": 8758, "capacity": 23750}}}, {"po": "41727", "name": "267 Front St., Gatineau", "products": [{"name": "REG #1", "capacity": 61750}, {"name": "REG #2", "capacity": 61750}, {"name": "DIESEL", "capacity": 33250}, {"name": "SUPREME", "capacity": 28500}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 47543, "ullage": 14207, "capacity": 61750}, "REG #2": {"volume": 47214, "ullage": 14536, "capacity": 61750}, "DIESEL": {"volume": 13943, "ullage": 19307, "capacity": 33250}, "SUPREME": {"volume": 10965, "ullage": 17535, "capacity": 28500}}}, {"po": "52244", "name": "Veteran Gas Bar", "products": [{"name": "REG", "capacity": 61750}, {"name": "SUPER", "capacity": 19000}, {"name": "DIESEL", "capacity": 14250}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 24332, "ullage": 37418, "capacity": 61750}, "SUPER": {"volume": 7284, "ullage": 11716, "capacity": 19000}, "DIESEL": {"volume": 6847, "ullage": 7403, "capacity": 14250}}}, {"po": "28138", "name": "2461, Boul. Henri-ford Vaudreuil", "products": [{"name": "DIESEL 1", "capacity": 62000}, {"name": "DIESEL 2", "capacity": 62000}], "latestDay": "WEDNESDAY", "latestData": {"DIESEL 1": {"volume": 12941, "ullage": 49059, "capacity": 62000}, "DIESEL 2": {"volume": 13092, "ullage": 48908, "capacity": 62000}}}, {"po": "52277", "name": "557 Chem. Kipawa, Témiscaming", "products": [{"name": "REG 1", "capacity": 20425}, {"name": "REG 2", "capacity": 20425}], "latestDay": "WEDNESDAY", "latestData": {"REG 1": {"volume": 10895, "ullage": 9530, "capacity": 20425}, "REG 2": {"volume": 5076, "ullage": 15349, "capacity": 20425}}}, {"po": "52293", "name": "Migizy Gas: 100 Ogima Street, Kipawa", "products": [{"name": "REG", "capacity": 33404}, {"name": "SUPER", "capacity": 14355}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 10698, "ullage": 22706, "capacity": 33404}, "SUPER": {"volume": 7604, "ullage": 6751, "capacity": 14355}}}, {"po": "41916", "name": "31194 Hwy 17, Chalk River, Ont.", "products": [{"name": "Regular", "capacity": 32250}, {"name": "Super", "capacity": 9500}, {"name": "Diesel", "capacity": 9500}], "latestDay": "WEDNESDAY", "latestData": {"Regular": {"volume": 30932, "ullage": 1318, "capacity": 32250}, "Super": {"volume": 6238, "ullage": 3262, "capacity": 9500}, "Diesel": {"volume": 4732, "ullage": 4768, "capacity": 9500}}}, {"po": "42445", "name": "1271 Pembroke St. W., Pembroke", "products": [{"name": "Reg 1", "capacity": 61750}, {"name": "Reg 2", "capacity": 61750}, {"name": "Super", "capacity": 33250}, {"name": "Diesel", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"Reg 1": {"volume": 43925, "ullage": 17825, "capacity": 61750}, "Reg 2": {"volume": 45169, "ullage": 16581, "capacity": 61750}, "Super": {"volume": 9275, "ullage": 23975, "capacity": 33250}, "Diesel": {"volume": 13981, "ullage": 9769, "capacity": 23750}}}, {"po": "41900", "name": "Carlsbad Variety", "products": [{"name": "REG", "capacity": 38000}, {"name": "SUPER", "capacity": 14250}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 26210, "ullage": 11790, "capacity": 38000}, "SUPER": {"volume": 13429, "ullage": 821, "capacity": 14250}}}, {"po": "41902", "name": "4755 St. Catherine, St. Isidore, Ont.", "products": [{"name": "REG", "capacity": 21565}, {"name": "SUPER", "capacity": 21565}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 17350, "ullage": 4215, "capacity": 21565}, "SUPER": {"volume": 18500, "ullage": 3065, "capacity": 21565}}}, {"po": "41908", "name": "2749 Laurier St., Rockland, Ont.", "products": [{"name": "REG #1", "capacity": 47500}, {"name": "REG #2", "capacity": 47500}, {"name": "SUPER", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 26180, "ullage": 21320, "capacity": 47500}, "REG #2": {"volume": 33610, "ullage": 13890, "capacity": 47500}, "SUPER": {"volume": 20836, "ullage": 2914, "capacity": 23750}, "DIESEL": {"volume": 20635, "ullage": 3115, "capacity": 23750}}}, {"po": "41909", "name": "992 Burton Rd (VARS)", "products": [{"name": "REG #1", "capacity": 47500}, {"name": "REG #2", "capacity": 47500}, {"name": "SUPER", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 18620, "ullage": 28880, "capacity": 47500}, "REG #2": {"volume": 21337, "ullage": 26163, "capacity": 47500}, "SUPER": {"volume": 12507, "ullage": 11243, "capacity": 23750}, "DIESEL": {"volume": 16142, "ullage": 7608, "capacity": 23750}}}, {"po": "43319", "name": "1536 Main Street E., Hawkesbury, Ont.", "products": [{"name": "REG", "capacity": 45000}, {"name": "SUPER", "capacity": 13500}, {"name": "DIESEL", "capacity": 18450}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 41692, "ullage": 3308, "capacity": 45000}, "SUPER": {"volume": 9001, "ullage": 4499, "capacity": 13500}, "DIESEL": {"volume": 18293, "ullage": 157, "capacity": 18450}}}, {"po": "42222", "name": "1725 Prescott & Russell County Rd 4, L'Orignal", "products": [{"name": "REG", "capacity": 90435}, {"name": "SUPER", "capacity": 23850}, {"name": "DIESEL", "capacity": 36000}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 52662, "ullage": 37773, "capacity": 90435}, "SUPER": {"volume": 16690, "ullage": 7160, "capacity": 23850}, "DIESEL": {"volume": 31865, "ullage": 4135, "capacity": 36000}}}, {"po": "41934", "name": "Antrim Truck Stop", "products": [{"name": "DIESEL 1 (west)", "capacity": 67500}, {"name": "DIESEL 2 (east)", "capacity": 67500}, {"name": "REG", "capacity": 67500}, {"name": "SUPER", "capacity": 23700}], "latestDay": "WEDNESDAY", "latestData": {"DIESEL 1 (west)": {"volume": 42619, "ullage": 24881, "capacity": 67500}, "DIESEL 2 (east)": {"volume": 42414, "ullage": 25086, "capacity": 67500}, "REG": {"volume": 39803, "ullage": 27697, "capacity": 67500}, "SUPER": {"volume": 10355, "ullage": 13345, "capacity": 23700}}}, {"po": "41403", "name": "85 Madawaska Blvd., Arnprior", "products": [{"name": "Super (tank 4)", "capacity": 23750}, {"name": "REG (tank 3)", "capacity": 23750}, {"name": "REG (tank 2)", "capacity": 33250}, {"name": "Diesel (tank 1)", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"Super (tank 4)": {"volume": 13160, "ullage": 10590, "capacity": 23750}, "REG (tank 3)": {"volume": 16113, "ullage": 7637, "capacity": 23750}, "REG (tank 2)": {"volume": 22994, "ullage": 10256, "capacity": 33250}, "Diesel (tank 1)": {"volume": 13982, "ullage": 9768, "capacity": 23750}}}, {"po": "41511", "name": "3467 Hawthorne Rd., Ottawa", "products": [{"name": "Reg 1", "capacity": 45000}, {"name": "Reg 2", "capacity": 45000}, {"name": "Super", "capacity": 31500}, {"name": "Diesel", "capacity": 22500}], "latestDay": "WEDNESDAY", "latestData": {"Reg 1": {"volume": 17441, "ullage": 27559, "capacity": 45000}, "Reg 2": {"volume": 17941, "ullage": 27059, "capacity": 45000}, "Super": {"volume": 24292, "ullage": 7208, "capacity": 31500}, "Diesel": {"volume": 16298, "ullage": 6202, "capacity": 22500}}}, {"po": "41470", "name": "3199 Hawthorne Rd., Ottawa", "products": [{"name": "Super", "capacity": 33250}, {"name": "Regular", "capacity": 45000}, {"name": "Diesel", "capacity": 47500}, {"name": "Diesel", "capacity": 47500}], "latestDay": "WEDNESDAY", "latestData": {"Super": {"volume": 28297, "ullage": 4953, "capacity": 33250}, "Regular": {"volume": 30371, "ullage": 14629, "capacity": 45000}, "Diesel": {"volume": 35488, "ullage": 12012, "capacity": 47500}}}, {"po": "42370", "name": "2688 St. Joseph Blvd, Orleans, Ont.", "products": [{"name": "REG #1", "capacity": 42750}, {"name": "REG #2", "capacity": 42750}, {"name": "SUPER", "capacity": 19000}, {"name": "DIESEL", "capacity": 19000}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 32675, "ullage": 10075, "capacity": 42750}, "REG #2": {"volume": 33375, "ullage": 9375, "capacity": 42750}, "SUPER": {"volume": 15184, "ullage": 3816, "capacity": 19000}, "DIESEL": {"volume": 15660, "ullage": 3340, "capacity": 19000}}}, {"po": "52210", "name": "1797 St. Joseph Blvd., Orleans, Ont.", "products": [{"name": "REG", "capacity": 57000}, {"name": "SUPER", "capacity": 28500}, {"name": "DIESEL", "capacity": 19000}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 30045, "ullage": 26955, "capacity": 57000}, "SUPER": {"volume": 14659, "ullage": 13841, "capacity": 28500}, "DIESEL": {"volume": 10889, "ullage": 8111, "capacity": 19000}}}, {"po": "41926", "name": "12456 Hwy 2, Morrisburg, Ont.", "products": [{"name": "Reg", "capacity": 71250}, {"name": "Super", "capacity": 23750}, {"name": "Diesel", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"Reg": {"volume": 65930, "ullage": 5320, "capacity": 71250}, "Super": {"volume": 12339, "ullage": 11411, "capacity": 23750}, "Diesel": {"volume": 22702, "ullage": 1048, "capacity": 23750}}}, {"po": "41903", "name": "370 McGill St., Hawkesbury, Ont.", "products": [{"name": "REG", "capacity": 57000}, {"name": "SUPER", "capacity": 19000}, {"name": "DIESEL", "capacity": 19000}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 50562, "ullage": 6438, "capacity": 57000}, "SUPER": {"volume": 14000, "ullage": 5000, "capacity": 19000}, "DIESEL": {"volume": 16601, "ullage": 2399, "capacity": 19000}}}];
 
-        const DIPS_DATA = [{"po": "41501", "name": "241 Boul. L'Aéroport", "products": [{"name": "REG #1", "capacity": 47500}, {"name": "REG #2", "capacity": 47500}, {"name": "PREMIUM", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 14414, "ullage": 33086, "capacity": 47500}, "REG #2": {"volume": 14618, "ullage": 32882, "capacity": 47500}, "PREMIUM": {"volume": 13131, "ullage": 10619, "capacity": 23750}, "DIESEL": {"volume": 6336, "ullage": 17414, "capacity": 23750}}}, {"po": "41691", "name": "1385 Boul. de la Vérendrye 723", "products": [{"name": "REG", "capacity": 33000}, {"name": "SUPER", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 19994, "ullage": 13006, "capacity": 33000}, "SUPER": {"volume": 10086, "ullage": 13664, "capacity": 23750}, "DIESEL": {"volume": 8275, "ullage": 15475, "capacity": 23750}}}, {"po": "41857", "name": "108 Boul Gréber, Gat.", "products": [{"name": "REG", "capacity": 47500}, {"name": "PREMIUM", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 30443, "ullage": 17057, "capacity": 47500}, "PREMIUM": {"volume": 15242, "ullage": 8508, "capacity": 23750}}}, {"po": "41808", "name": "3 Ave - Gatineau", "products": [{"name": "DIESEL", "capacity": 31000}, {"name": "REG #1", "capacity": 34485}, {"name": "REG #2", "capacity": 34485}, {"name": "PREMIUM", "capacity": 34485}], "latestDay": "WEDNESDAY", "latestData": {"DIESEL": {"volume": 14527, "ullage": 16473, "capacity": 31000}, "REG #1": {"volume": 11423, "ullage": 23062, "capacity": 34485}, "REG #2": {"volume": 8547, "ullage": 25938, "capacity": 34485}, "PREMIUM": {"volume": 8225, "ullage": 26260, "capacity": 34485}}}, {"po": "41496", "name": "", "products": [{"name": "REG #1", "capacity": 60000}, {"name": "REG #2", "capacity": 60000}, {"name": "PREMIUM", "capacity": 33250}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 27089, "ullage": 32911, "capacity": 60000}, "REG #2": {"volume": 26574, "ullage": 33426, "capacity": 60000}, "PREMIUM": {"volume": 6694, "ullage": 26556, "capacity": 33250}, "DIESEL": {"volume": 14992, "ullage": 8758, "capacity": 23750}}}, {"po": "41727", "name": "267 Front St., Gatineau", "products": [{"name": "REG #1", "capacity": 61750}, {"name": "REG #2", "capacity": 61750}, {"name": "DIESEL", "capacity": 33250}, {"name": "SUPREME", "capacity": 28500}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 47543, "ullage": 14207, "capacity": 61750}, "REG #2": {"volume": 47214, "ullage": 14536, "capacity": 61750}, "DIESEL": {"volume": 13943, "ullage": 19307, "capacity": 33250}, "SUPREME": {"volume": 10965, "ullage": 17535, "capacity": 28500}}}, {"po": "52244", "name": "Veteran Gas Bar", "products": [{"name": "REG", "capacity": 61750}, {"name": "SUPER", "capacity": 19000}, {"name": "DIESEL", "capacity": 14250}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 24332, "ullage": 37418, "capacity": 61750}, "SUPER": {"volume": 7284, "ullage": 11716, "capacity": 19000}, "DIESEL": {"volume": 6847, "ullage": 7403, "capacity": 14250}}}, {"po": "28138", "name": "2461, Boul. Henri-ford Vaudreuil", "products": [{"name": "DIESEL 1", "capacity": 62000}, {"name": "DIESEL 2", "capacity": 62000}], "latestDay": "WEDNESDAY", "latestData": {"DIESEL 1": {"volume": 12941, "ullage": 49059, "capacity": 62000}, "DIESEL 2": {"volume": 13092, "ullage": 48908, "capacity": 62000}}}, {"po": "52277", "name": "557 Chem. Kipawa, Témiscaming", "products": [{"name": "REG 1", "capacity": 20425}, {"name": "REG 2", "capacity": 20425}], "latestDay": "WEDNESDAY", "latestData": {"REG 1": {"volume": 10895, "ullage": 9530, "capacity": 20425}, "REG 2": {"volume": 5076, "ullage": 15349, "capacity": 20425}}}, {"po": "52293", "name": "Migizy Gas: 100 Ogima Street, Kipawa", "products": [{"name": "REG", "capacity": 33404}, {"name": "SUPER", "capacity": 14355}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 10698, "ullage": 22706, "capacity": 33404}, "SUPER": {"volume": 7604, "ullage": 6751, "capacity": 14355}}}, {"po": "41916", "name": "31194 Hwy 17, Chalk River, Ont.", "products": [{"name": "Regular", "capacity": 32250}, {"name": "Super", "capacity": 9500}, {"name": "Diesel", "capacity": 9500}], "latestDay": "WEDNESDAY", "latestData": {"Regular": {"volume": 30932, "ullage": 1318, "capacity": 32250}, "Super": {"volume": 6238, "ullage": 3262, "capacity": 9500}, "Diesel": {"volume": 4732, "ullage": 4768, "capacity": 9500}}}, {"po": "42445", "name": "1271 Pembroke St. W., Pembroke", "products": [{"name": "Reg 1", "capacity": 61750}, {"name": "Reg 2", "capacity": 61750}, {"name": "Super", "capacity": 33250}, {"name": "Diesel", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"Reg 1": {"volume": 43925, "ullage": 17825, "capacity": 61750}, "Reg 2": {"volume": 45169, "ullage": 16581, "capacity": 61750}, "Super": {"volume": 9275, "ullage": 23975, "capacity": 33250}, "Diesel": {"volume": 13981, "ullage": 9769, "capacity": 23750}}}, {"po": "41900", "name": "Carlsbad Variety", "products": [{"name": "REG", "capacity": 38000}, {"name": "SUPER", "capacity": 14250}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 26210, "ullage": 11790, "capacity": 38000}, "SUPER": {"volume": 13429, "ullage": 821, "capacity": 14250}}}, {"po": "41902", "name": "4755 St. Catherine, St. Isidore, Ont.", "products": [{"name": "REG", "capacity": 21565}, {"name": "SUPER", "capacity": 21565}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 17350, "ullage": 4215, "capacity": 21565}, "SUPER": {"volume": 18500, "ullage": 3065, "capacity": 21565}}}, {"po": "41908", "name": "2749 Laurier St., Rockland, Ont.", "products": [{"name": "REG #1", "capacity": 47500}, {"name": "REG #2", "capacity": 47500}, {"name": "SUPER", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 26180, "ullage": 21320, "capacity": 47500}, "REG #2": {"volume": 33610, "ullage": 13890, "capacity": 47500}, "SUPER": {"volume": 20836, "ullage": 2914, "capacity": 23750}, "DIESEL": {"volume": 20635, "ullage": 3115, "capacity": 23750}}}, {"po": "41909", "name": "992 Burton Rd (VARS)", "products": [{"name": "REG #1", "capacity": 47500}, {"name": "REG #2", "capacity": 47500}, {"name": "SUPER", "capacity": 23750}, {"name": "DIESEL", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 18620, "ullage": 28880, "capacity": 47500}, "REG #2": {"volume": 21337, "ullage": 26163, "capacity": 47500}, "SUPER": {"volume": 12507, "ullage": 11243, "capacity": 23750}, "DIESEL": {"volume": 16142, "ullage": 7608, "capacity": 23750}}}, {"po": "43319", "name": "1536 Main Street E., Hawkesbury, Ont.", "products": [{"name": "REG", "capacity": 45000}, {"name": "SUPER", "capacity": 13500}, {"name": "DIESEL", "capacity": 18450}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 41692, "ullage": 3308, "capacity": 45000}, "SUPER": {"volume": 9001, "ullage": 4499, "capacity": 13500}, "DIESEL": {"volume": 18293, "ullage": 157, "capacity": 18450}}}, {"po": "42222", "name": "1725 Prescott & Russell County Rd 4, L'Orignal", "products": [{"name": "REG", "capacity": 90435}, {"name": "SUPER", "capacity": 23850}, {"name": "DIESEL", "capacity": 36000}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 52662, "ullage": 37773, "capacity": 90435}, "SUPER": {"volume": 16690, "ullage": 7160, "capacity": 23850}, "DIESEL": {"volume": 31865, "ullage": 4135, "capacity": 36000}}}, {"po": "41934", "name": "Antrim Truck Stop", "products": [{"name": "DIESEL 1 (west)", "capacity": 67500}, {"name": "DIESEL 2 (east)", "capacity": 67500}, {"name": "REG", "capacity": 67500}, {"name": "SUPER", "capacity": 23700}], "latestDay": "WEDNESDAY", "latestData": {"DIESEL 1 (west)": {"volume": 42619, "ullage": 24881, "capacity": 67500}, "DIESEL 2 (east)": {"volume": 42414, "ullage": 25086, "capacity": 67500}, "REG": {"volume": 39803, "ullage": 27697, "capacity": 67500}, "SUPER": {"volume": 10355, "ullage": 13345, "capacity": 23700}}}, {"po": "41403", "name": "85 Madawaska Blvd., Arnprior", "products": [{"name": "Super (tank 4)", "capacity": 23750}, {"name": "REG (tank 3)", "capacity": 23750}, {"name": "REG (tank 2)", "capacity": 33250}, {"name": "Diesel (tank 1)", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"Super (tank 4)": {"volume": 13160, "ullage": 10590, "capacity": 23750}, "REG (tank 3)": {"volume": 16113, "ullage": 7637, "capacity": 23750}, "REG (tank 2)": {"volume": 22994, "ullage": 10256, "capacity": 33250}, "Diesel (tank 1)": {"volume": 13982, "ullage": 9768, "capacity": 23750}}}, {"po": "41511", "name": "3467 Hawthorne Rd., Ottawa", "products": [{"name": "Reg 1", "capacity": 45000}, {"name": "Reg 2", "capacity": 45000}, {"name": "Super", "capacity": 31500}, {"name": "Diesel", "capacity": 22500}], "latestDay": "WEDNESDAY", "latestData": {"Reg 1": {"volume": 17441, "ullage": 27559, "capacity": 45000}, "Reg 2": {"volume": 17941, "ullage": 27059, "capacity": 45000}, "Super": {"volume": 24292, "ullage": 7208, "capacity": 31500}, "Diesel": {"volume": 16298, "ullage": 6202, "capacity": 22500}}}, {"po": "41470", "name": "3199 Hawthorne Rd., Ottawa", "products": [{"name": "Super", "capacity": 33250}, {"name": "Regular", "capacity": 45000}, {"name": "Diesel", "capacity": 47500}, {"name": "Diesel", "capacity": 47500}], "latestDay": "WEDNESDAY", "latestData": {"Super": {"volume": 28297, "ullage": 4953, "capacity": 33250}, "Regular": {"volume": 30371, "ullage": 14629, "capacity": 45000}, "Diesel": {"volume": 35488, "ullage": 12012, "capacity": 47500}}}, {"po": "42370", "name": "2688 St. Joseph Blvd, Orleans, Ont.", "products": [{"name": "REG #1", "capacity": 42750}, {"name": "REG #2", "capacity": 42750}, {"name": "SUPER", "capacity": 19000}, {"name": "DIESEL", "capacity": 19000}], "latestDay": "WEDNESDAY", "latestData": {"REG #1": {"volume": 32675, "ullage": 10075, "capacity": 42750}, "REG #2": {"volume": 33375, "ullage": 9375, "capacity": 42750}, "SUPER": {"volume": 15184, "ullage": 3816, "capacity": 19000}, "DIESEL": {"volume": 15660, "ullage": 3340, "capacity": 19000}}}, {"po": "52210", "name": "1797 St. Joseph Blvd., Orleans, Ont.", "products": [{"name": "REG", "capacity": 57000}, {"name": "SUPER", "capacity": 28500}, {"name": "DIESEL", "capacity": 19000}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 30045, "ullage": 26955, "capacity": 57000}, "SUPER": {"volume": 14659, "ullage": 13841, "capacity": 28500}, "DIESEL": {"volume": 10889, "ullage": 8111, "capacity": 19000}}}, {"po": "41926", "name": "12456 Hwy 2, Morrisburg, Ont.", "products": [{"name": "Reg", "capacity": 71250}, {"name": "Super", "capacity": 23750}, {"name": "Diesel", "capacity": 23750}], "latestDay": "WEDNESDAY", "latestData": {"Reg": {"volume": 65930, "ullage": 5320, "capacity": 71250}, "Super": {"volume": 12339, "ullage": 11411, "capacity": 23750}, "Diesel": {"volume": 22702, "ullage": 1048, "capacity": 23750}}}, {"po": "41903", "name": "370 McGill St., Hawkesbury, Ont.", "products": [{"name": "REG", "capacity": 57000}, {"name": "SUPER", "capacity": 19000}, {"name": "DIESEL", "capacity": 19000}], "latestDay": "WEDNESDAY", "latestData": {"REG": {"volume": 50562, "ullage": 6438, "capacity": 57000}, "SUPER": {"volume": 14000, "ullage": 5000, "capacity": 19000}, "DIESEL": {"volume": 16601, "ullage": 2399, "capacity": 19000}}}];
+        // ==================== GOOGLE SHEETS LIVE ====================
+        // Sheet ID from: https://docs.google.com/spreadsheets/d/10AP1Tj3o8GXspAvNKdrvsdObhKJwmQWQPPAq40vbjZs/
+        const SHEET_ID = '10AP1Tj3o8GXspAvNKdrvsdObhKJwmQWQPPAq40vbjZs';
+        // To use: publish the "Dips" tab to web (File > Share > Publish to web) as CSV
+        // Or use the Google Sheets API with an API key
+        // For now, we use the CSV export approach which works for public sheets
+        
+        async function fetchLiveDips(tabName) {
+            // Try multiple approaches to fetch the sheet
+            const approaches = [
+                // Approach 1: gviz JSON endpoint (works for public sheets)
+                () => {
+                    const encodedTab = encodeURIComponent(tabName);
+                    return fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodedTab}`);
+                },
+                // Approach 2: Try with different common tab name formats
+                () => {
+                    // Try replacing special chars
+                    const altName = tabName.replace(/(\d+)(st|nd|rd|th)/g, '$1');
+                    const encodedTab = encodeURIComponent(altName);
+                    return fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodedTab}`);
+                },
+                // Approach 3: CSV export (sometimes more reliable)
+                () => {
+                    const encodedTab = encodeURIComponent(tabName);
+                    return fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=${encodedTab}`);
+                }
+            ];
 
+            for (const tryFetch of approaches) {
+                try {
+                    const response = await tryFetch();
+                    if (!response.ok) continue;
+                    const text = await response.text();
+                    
+                    // Check if it's JSON (gviz response)
+                    const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/);
+                    if (jsonMatch) {
+                        const data = JSON.parse(jsonMatch[1]);
+                        if (data.status === 'error') continue;
+                        const result = parseDipsFromGoogleData(data);
+                        if (result && result.length > 0) return result;
+                    }
+                    
+                    // Check if it's CSV
+                    if (text.includes(',') && text.split('\n').length > 5) {
+                        const result = parseDipsFromCSV(text);
+                        if (result && result.length > 0) return result;
+                    }
+                } catch (err) {
+                    console.warn('Fetch approach failed:', err.message);
+                    continue;
+                }
+            }
+            return null;
+        }
+
+        function parseDipsFromCSV(csvText) {
+            // Parse CSV format of dips sheet
+            const lines = csvText.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+            const stations = [];
+            let currentStation = null;
+            let productNames = [];
+            let productCaps = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const row = lines[i];
+                if (!row || row.length < 3) continue;
+
+                // Detect station header (contains AM/PM pattern)
+                if (row[1] && row[1].includes('AM') && row[1].includes('PM')) {
+                    if (currentStation && Object.keys(currentStation.latestData).length > 0) stations.push(currentStation);
+                    const poMatch = row[2]?.match(/(\d{5})/);
+                    const po = poMatch ? poMatch[1] : '';
+                    const name = row[3] ? row[3].split('\n')[0].trim() : '';
+                    currentStation = { po, name, products: [], latestDay: '', latestData: {} };
+                    productNames = [];
+                    productCaps = [];
+                    continue;
+                }
+
+                // Detect product names row (before Date row)
+                if (row[1] === 'Date' && currentStation) {
+                    // The previous row had product names, the current row has capacities
+                    const prevRow = lines[i-1];
+                    for (const col of [2, 4, 6, 8]) {
+                        if (prevRow?.[col] && row[col]) {
+                            productNames.push({ name: prevRow[col], col: col, capCol: col + 1 });
+                            productCaps.push(Number(row[col]) || 0);
+                            currentStation.products.push({ name: prevRow[col], capacity: Number(row[col]) || 0 });
+                        }
+                    }
+                    continue;
+                }
+
+                // Day rows
+                const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+                if (currentStation && productNames.length > 0 && dayNames.includes(row[1]?.toUpperCase())) {
+                    productNames.forEach((p, idx) => {
+                        const vol = Number(row[p.col]) || 0;
+                        const ull = Number(row[p.col + 1]) || 0;
+                        if (vol > 0) {
+                            currentStation.latestData[p.name] = { volume: Math.round(vol), ullage: Math.round(ull || (productCaps[idx] - vol)), capacity: Math.round(productCaps[idx]) };
+                            currentStation.latestDay = row[1].toUpperCase();
+                        }
+                    });
+                }
+            }
+            if (currentStation && Object.keys(currentStation.latestData).length > 0) stations.push(currentStation);
+            return stations;
+        }
+
+        function parseDipsFromGoogleData(data) {
+            // Parse the Google Sheets JSON format into our dips structure
+            const rows = data.table.rows;
+            const stations = [];
+            let currentStation = null;
+            let productCols = [];
+            let capacityRow = false;
+
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].c;
+                if (!cells) continue;
+                const getVal = (idx) => cells[idx]?.v;
+                const getStr = (idx) => String(cells[idx]?.v || '');
+
+                // Detect station header (AM\PM in col B)
+                if (getStr(1).includes('AM') && getStr(1).includes('PM')) {
+                    if (currentStation && currentStation.products.length > 0) stations.push(currentStation);
+                    const poRaw = getStr(2);
+                    const poMatch = poRaw.match(/(\d{5})/);
+                    const po = poMatch ? poMatch[1] : '';
+                    const nameRaw = getStr(3);
+                    const name = nameRaw ? nameRaw.split('\n')[0].trim() : '';
+                    currentStation = { po, name, products: [], latestDay: '', latestData: {} };
+                    productCols = [];
+                    capacityRow = false;
+                    continue;
+                }
+
+                // Detect "Date" row = capacity row
+                if (getStr(1) === 'Date' && currentStation) {
+                    // Previous row had product names
+                    const prevCells = rows[i-1]?.c;
+                    if (prevCells) {
+                        for (const col of [2, 4, 6, 8]) {
+                            const pName = prevCells[col]?.v;
+                            const cap = getVal(col);
+                            if (pName && cap) {
+                                productCols.push({ name: String(pName).trim(), capacity: Number(cap), colVol: col, colUll: col + 1 });
+                                currentStation.products.push({ name: String(pName).trim(), capacity: Number(cap) });
+                            }
+                        }
+                    }
+                    capacityRow = true;
+                    continue;
+                }
+
+                // Data rows (days)
+                const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+                if (capacityRow && currentStation && dayNames.includes(getStr(1).toUpperCase())) {
+                    const day = getStr(1).toUpperCase();
+                    let hasVol = false;
+                    for (const pc of productCols) {
+                        const vol = getVal(pc.colVol);
+                        const ull = getVal(pc.colUll);
+                        if (vol !== null && vol !== undefined && vol !== '') {
+                            hasVol = true;
+                            currentStation.latestData[pc.name] = {
+                                volume: Math.round(Number(vol)),
+                                ullage: Math.round(Number(ull || (pc.capacity - Number(vol)))),
+                                capacity: Math.round(pc.capacity)
+                            };
+                            currentStation.latestDay = day;
+                        }
+                    }
+                }
+            }
+            if (currentStation && currentStation.products.length > 0) stations.push(currentStation);
+            return stations.filter(s => Object.keys(s.latestData).length > 0);
+        }
+
+        // ==================== HELPERS ====================
         const createEmptyStop = () => ({
             id: Date.now() + Math.random(),
             poNumber: '', terminal: '', pbNumber: '', lvNumber: '', notes: '',
@@ -196,149 +379,178 @@
         });
         const isSingleCompartment = (t) => ['86','87','88','89'].includes(t);
         const getCompartmentCount = (t) => isSingleCompartment(t) ? 1 : 6;
-        const getPossibleMaxNote = (trailerNum, product, compIndex, isLocal) => {
-            // Purple notes: GAS ONLY possible max capacities from Weights sheet
-            // FULL LOADS (non-local / Montreal loads)
-            const fullNotes = {
-                "92":{"Reg Gas":{0:"GAS: 16K possible",1:"GAS: 8K possible"}},
-                "95":{"Reg Gas":{0:"GAS: 16K possible",1:"GAS: 8K possible"}},
-                "98":{"Reg Gas":{0:"GAS: Could be 15K",2:"GAS: Could be 11K"}},
-                "99":{"Reg Gas":{0:"GAS: Could be 15K",2:"GAS: Could be 11K"}},
-                "100":{"Reg Gas":{0:"GAS: 14,500 MAX",2:"GAS: 13,500 possible"}},
-                "101":{"Reg Gas":{0:"GAS: 14,500 MAX",2:"GAS: 13,500 possible"}},
-                "102":{"Reg Gas":{0:"GAS: 14,500 MAX",2:"GAS: 13,500 possible"}},
-                "105":{"Reg Gas":{0:"GAS: 14,500 MAX",2:"GAS: 13,500 possible"}},
-                "106":{"Reg Gas":{0:"GAS: 14,500 MAX",2:"GAS: 13,500 possible"}},
-                "107":{"Reg Gas":{0:"GAS: 14,500 MAX",2:"GAS: 13,500 possible"}},
-                "103":{"Reg Gas":{0:"GAS: 14,500",1:"GAS: 5,500",2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}},
-                "104":{"Reg Gas":{0:"GAS: 14,500",1:"GAS: 5,500",2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}},
-                "108":{"Reg Gas":{0:"GAS: 14,500",1:"GAS: 5,500",2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}},
-                "109":{"Reg Gas":{0:"GAS: 14,500",1:"GAS: 5,500",2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}}
-            };
-            // LOCAL LOADS (Ottawa - IOL, Shell, Suncor, Valero Maitland)
-            const localNotes = {
-                "92":{"Reg Gas":{0:"GAS: 16K possible"}},
-                "95":{"Reg Gas":{0:"GAS: 16K possible"}},
-                "98":{"Reg Gas":{0:"GAS: Could be 15K"}},
-                "99":{"Reg Gas":{0:"GAS: Could be 15K"}},
-                "100":{"Reg Gas":{2:"GAS: 13,500 possible"}},
-                "101":{"Reg Gas":{2:"GAS: 13,500 possible"}},
-                "102":{"Reg Gas":{2:"GAS: 13,500 possible"}},
-                "105":{"Reg Gas":{2:"GAS: 13,500 possible"}},
-                "106":{"Reg Gas":{2:"GAS: 13,500 possible"}},
-                "107":{"Reg Gas":{2:"GAS: 13,500 possible"}},
-                "103":{"Reg Gas":{2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}},
-                "104":{"Reg Gas":{2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}},
-                "108":{"Reg Gas":{2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}},
-                "109":{"Reg Gas":{2:"GAS: 12,000",3:"GAS: 11,500",4:"GAS: 6,000",5:"GAS: 13,500"}}
-            };
-            const notes = isLocal ? localNotes : fullNotes;
-            return notes[trailerNum]?.[product]?.[compIndex] || null;
+
+        // Maximum allowed total per trailer (standard loads)
+        const getTrailerMaxTotal = (trailerNum) => {
+            const t = TRAILERS[trailerNum];
+            if (!t) return 0;
+            // Use Reg Gas as baseline for max total (most generous)
+            const gasComps = t.products['Reg Gas'];
+            if (!gasComps || gasComps.length === 0) {
+                // Quads
+                const ethComps = t.products['ETHANOL'];
+                return ethComps ? ethComps.reduce((a,b) => a+b, 0) : 0;
+            }
+            return gasComps.reduce((a,b) => a+b, 0);
         };
+
+        // Possible max volumes for GAS (purple notes from Weights.xlsx)
+        // Returns the absolute max a compartment CAN hold for Gas, or null if no override
+        const getGasMaxOverride = (trailerNum, compIndex, isLocal) => {
+            const fullOverrides = {
+                "92":{0:16000,1:8000},"95":{0:16000,1:8000},
+                "98":{0:15000,2:11000},"99":{0:15000,2:11000},
+                "100":{0:14500,2:13500},"101":{0:14500,2:13500},"102":{0:14500,2:13500},
+                "105":{0:14500,2:13500},"106":{0:14500,2:13500},"107":{0:14500,2:13500},
+                "103":{0:14500,1:5500,2:12000,3:11500,4:6000,5:13500},
+                "104":{0:14500,1:5500,2:12000,3:11500,4:6000,5:13500},
+                "108":{0:14500,1:5500,2:12000,3:11500,4:6000,5:13500},
+                "109":{0:14500,1:5500,2:12000,3:11500,4:6000,5:13500}
+            };
+            const localOverrides = {
+                "92":{0:16000},"95":{0:16000},
+                "98":{0:15000},"99":{0:15000},
+                "100":{2:13500},"101":{2:13500},"102":{2:13500},
+                "105":{2:13500},"106":{2:13500},"107":{2:13500},
+                "103":{2:12000,3:11500,4:6000,5:13500},
+                "104":{2:12000,3:11500,4:6000,5:13500},
+                "108":{2:12000,3:11500,4:6000,5:13500},
+                "109":{2:12000,3:11500,4:6000,5:13500}
+            };
+            const overrides = isLocal ? localOverrides : fullOverrides;
+            return overrides[trailerNum]?.[compIndex] || null;
+        };
+
+        const getPossibleMaxNote = (trailerNum, product, compIndex, isLocal) => {
+            if (product !== 'Reg Gas') return null;
+            const override = getGasMaxOverride(trailerNum, compIndex, isLocal);
+            if (!override) return null;
+            const tc = isLocal ? LOCAL_TRAILERS : TRAILERS;
+            const standard = tc[trailerNum]?.products['Reg Gas']?.[compIndex] || 0;
+            if (override <= standard) return null;
+            return `GAS can be ${override.toLocaleString()}`;
+        };
+
         const getFillColor = (pct) => pct <= 20 ? 'red' : pct <= 35 ? 'orange' : pct <= 50 ? 'yellow' : 'green';
-        const getUllageClass = (ull, cap) => { const p = (ull/cap)*100; return p > 75 ? 'low' : p > 50 ? 'med' : 'ok'; };
+        const getUllageClass = (ull, cap) => { const p = (ull/cap)*100; return p > 70 ? 'low' : p > 50 ? 'med' : 'ok'; };
+        const getProductBadgeClass = (name) => {
+            const n = name.toLowerCase();
+            if (n.includes('diesel') || n.includes('dyed') || n.includes('furnace') || n.includes('stove')) return 'diesel';
+            if (n.includes('super') || n.includes('premium') || n.includes('supreme') || n.includes('jet')) return 'super';
+            if (n.includes('ethanol') || n.includes('cbob')) return 'ethanol';
+            if (n.includes('gas') || n.includes('reg')) return 'gas';
+            return 'other';
+        };
+
+        // Find dips data for a PO number
+        const findDipsForPO = (poNum) => DIPS_DATA.find(d => d.po === poNum);
 
         // ==================== DIPS DASHBOARD ====================
-        function DipsDashboard() {
+        function DipsDashboard({ dipsData }) {
             const [search, setSearch] = useState('');
             const [filter, setFilter] = useState('all');
             const [sortBy, setSortBy] = useState('urgency');
+            const data = dipsData || DIPS_DATA;
 
             const processedDips = useMemo(() => {
-                let data = DIPS_DATA.filter(s => Object.keys(s.latestData).length > 0);
-                if (search) {
-                    const q = search.toLowerCase();
-                    data = data.filter(s => s.name.toLowerCase().includes(q) || s.po.toLowerCase().includes(q));
-                }
-                if (filter === 'low-ullage') {
-                    data = data.filter(s => Object.values(s.latestData).some(p => p.volume !== null && (p.volume / p.capacity) < 0.40));
-                } else if (filter !== 'all') {
-                    data = data.filter(s => Object.keys(s.latestData).some(name => {
-                        const n = name.toLowerCase();
-                        if (filter === 'reg') return n.includes('reg');
-                        if (filter === 'diesel') return n.includes('diesel');
-                        if (filter === 'super') return n.includes('super') || n.includes('premium') || n.includes('supreme');
-                        return true;
-                    }));
-                }
-                if (sortBy === 'urgency') {
-                    data.sort((a, b) => {
-                        const mA = Math.min(...Object.values(a.latestData).filter(p => p.volume !== null).map(p => p.volume / p.capacity));
-                        const mB = Math.min(...Object.values(b.latestData).filter(p => p.volume !== null).map(p => p.volume / p.capacity));
-                        return mA - mB;
-                    });
-                } else if (sortBy === 'name') data.sort((a, b) => a.name.localeCompare(b.name));
-                else data.sort((a, b) => a.po.localeCompare(b.po));
-                return data;
-            }, [search, filter, sortBy]);
+                let d = data.filter(s => Object.keys(s.latestData).length > 0);
+                if (search) { const q = search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q) || s.po.toLowerCase().includes(q)); }
+                if (filter === 'needs-fuel') d = d.filter(s => Object.values(s.latestData).some(p => p.volume !== null && (p.volume / p.capacity) < 0.40));
+                else if (filter !== 'all') d = d.filter(s => Object.keys(s.latestData).some(n => { const nl = n.toLowerCase(); return filter === 'reg' ? nl.includes('reg') : filter === 'diesel' ? nl.includes('diesel') : (nl.includes('super') || nl.includes('premium') || nl.includes('supreme')); }));
+                if (sortBy === 'urgency') d.sort((a, b) => Math.min(...Object.values(a.latestData).filter(p => p.volume !== null).map(p => p.volume/p.capacity)) - Math.min(...Object.values(b.latestData).filter(p => p.volume !== null).map(p => p.volume/p.capacity)));
+                else if (sortBy === 'name') d.sort((a, b) => a.name.localeCompare(b.name));
+                else d.sort((a, b) => a.po.localeCompare(b.po));
+                return d;
+            }, [search, filter, sortBy, data]);
 
             const stats = useMemo(() => {
-                let critical = 0, warning = 0, ok = 0;
-                DIPS_DATA.forEach(s => Object.values(s.latestData).forEach(p => {
-                    if (p.volume === null) return;
-                    const pct = p.volume / p.capacity;
-                    if (pct <= 0.25) critical++; else if (pct <= 0.40) warning++; else ok++;
-                }));
-                return { critical, warning, ok };
-            }, []);
+                let c = 0, w = 0, o = 0;
+                data.forEach(s => Object.values(s.latestData).forEach(p => { if (!p.volume) return; const pct = p.volume/p.capacity; if (pct <= 0.25) c++; else if (pct <= 0.40) w++; else o++; }));
+                return { critical: c, warning: w, ok: o };
+            }, [data]);
 
-            return (
-                <div>
-                    <div className="dips-summary">
-                        <div className="dips-summary-card alert"><div className="dips-summary-value">{stats.critical}</div><div className="dips-summary-label">🔴 Needs Fuel (&lt;25% full)</div></div>
-                        <div className="dips-summary-card warning"><div className="dips-summary-value">{stats.warning}</div><div className="dips-summary-label">🟡 Getting Low (25-40%)</div></div>
-                        <div className="dips-summary-card ok"><div className="dips-summary-value">{stats.ok}</div><div className="dips-summary-label">🟢 Good Level (&gt;40%)</div></div>
-                    </div>
-                    <div className="dips-toolbar">
-                        <input className="dips-search" placeholder="🔍 Search by station or PO#..." value={search} onChange={e => setSearch(e.target.value)} />
-                        {['all','low-ullage','reg','diesel','super'].map(f => (
-                            <button key={f} className={`dips-filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-                                {f === 'all' ? 'All' : f === 'low-ullage' ? '⚠️ Needs Fuel' : f === 'reg' ? 'Regular' : f === 'diesel' ? 'Diesel' : 'Super/Prem'}
-                            </button>
-                        ))}
-                        <select className="dips-filter-btn" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{minWidth: 120}}>
-                            <option value="urgency">Sort: Urgency</option>
-                            <option value="name">Sort: Name</option>
-                            <option value="po">Sort: PO#</option>
-                        </select>
-                    </div>
-                    <div className="dips-grid">
-                        {processedDips.map(station => (
-                            <div key={station.po} className="dip-card">
-                                <div className="dip-card-header">
-                                    <div className="dip-station-name">{station.name || `PO# ${station.po}`}</div>
-                                    <div className="dip-po-badge">PO# {station.po}</div>
-                                </div>
-                                <div className="dip-card-body">
-                                    {Object.entries(station.latestData).map(([pn, d]) => {
-                                        if (d.volume === null) return null;
-                                        const pct = (d.volume / d.capacity) * 100;
-                                        const color = getFillColor(pct);
-                                        const uc = getUllageClass(d.ullage, d.capacity);
-                                        return (
-                                            <div key={pn} className="dip-product-row">
-                                                <div className="dip-product-header">
-                                                    <span className="dip-product-name">{pn}</span>
-                                                    <span className="dip-product-stats"><span>{d.volume.toLocaleString()}</span> / {d.capacity.toLocaleString()} L</span>
-                                                </div>
-                                                <div className="dip-bar-track">
-                                                    <div className={`dip-bar-fill ${color}`} style={{width: `${Math.min(pct, 100)}%`}}>
-                                                        {pct > 20 && <span className="dip-bar-label">{pct.toFixed(0)}%</span>}
-                                                    </div>
-                                                    {pct <= 20 && <span className="dip-bar-label dark" style={{position:'absolute', left: `${Math.max(pct+1, 1)}%`, top:'50%', transform:'translateY(-50%)'}}>{pct.toFixed(0)}%</span>}
-                                                </div>
-                                                <div className={`dip-ullage-highlight ${uc}`}>Ullage: {d.ullage.toLocaleString()} L</div>
-                                            </div>
-                                        );
-                                    })}
-                                    <div className="dip-update-badge">Last reading: {station.latestDay}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    {processedDips.length === 0 && <div className="empty-state"><div className="empty-icon">🔍</div><div className="empty-text">No stations match your search</div></div>}
+            return (<div>
+                <div className="dips-summary">
+                    <div className="dips-summary-card alert"><div className="dips-summary-value">{stats.critical}</div><div className="dips-summary-label">🔴 Needs Fuel (&lt;25%)</div></div>
+                    <div className="dips-summary-card warning"><div className="dips-summary-value">{stats.warning}</div><div className="dips-summary-label">🟡 Getting Low (25-40%)</div></div>
+                    <div className="dips-summary-card ok"><div className="dips-summary-value">{stats.ok}</div><div className="dips-summary-label">🟢 Good Level (&gt;40%)</div></div>
                 </div>
-            );
+                <div className="dips-toolbar">
+                    <input className="dips-search" placeholder="🔍 Search station or PO#..." value={search} onChange={e => setSearch(e.target.value)} />
+                    {[['all','All'],['needs-fuel','⚠️ Needs Fuel'],['reg','Regular'],['diesel','Diesel'],['super','Super/Prem']].map(([k,l]) => (
+                        <button key={k} className={`dips-filter-btn ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>{l}</button>
+                    ))}
+                    <select className="dips-filter-btn" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{minWidth:110}}><option value="urgency">Sort: Urgency</option><option value="name">Sort: Name</option><option value="po">Sort: PO#</option></select>
+                </div>
+                <div className="dips-grid">
+                    {processedDips.map(s => (<div key={s.po} className="dip-card">
+                        <div className="dip-card-header"><div className="dip-station-name">{s.name || `PO# ${s.po}`}</div><div className="dip-po-badge">PO# {s.po}</div></div>
+                        <div className="dip-card-body">
+                            {Object.entries(s.latestData).map(([pn, d]) => { if (!d.volume) return null; const pct = (d.volume/d.capacity)*100; const c = getFillColor(pct); const uc = getUllageClass(d.ullage, d.capacity); return (
+                                <div key={pn} className="dip-product-row">
+                                    <div className="dip-product-header"><span className="dip-product-name">{pn}</span><span className="dip-product-stats"><span>{d.volume.toLocaleString()}</span> / {d.capacity.toLocaleString()} L</span></div>
+                                    <div className="dip-bar-track"><div className={`dip-bar-fill ${c}`} style={{width:`${Math.min(pct,100)}%`}}>{pct > 20 && <span className="dip-bar-label">{pct.toFixed(0)}%</span>}</div>{pct <= 20 && <span className="dip-bar-label dark" style={{position:'absolute',left:`${Math.max(pct+1,1)}%`,top:'50%',transform:'translateY(-50%)'}}>{pct.toFixed(0)}%</span>}</div>
+                                    <div className={`dip-ullage-highlight ${uc}`}>Ullage: {d.ullage.toLocaleString()} L</div>
+                                </div>);
+                            })}
+                            <div className="dip-update-badge">Last: {s.latestDay}</div>
+                        </div>
+                    </div>))}
+                </div>
+                {processedDips.length === 0 && <div className="empty-state"><div className="empty-icon">🔍</div><div className="empty-text">No stations match</div></div>}
+            </div>);
+        }
+
+        // ==================== INLINE DIP CARD (under PO selection) ====================
+        function InlineDipCard({ poNumber, loadedProducts }) {
+            const dip = findDipsForPO(poNumber);
+            if (!dip) return <div style={{fontSize:'0.625rem',color:'var(--text-tertiary)',padding:'0.375rem 0',fontStyle:'italic'}}>No dip data for PO# {poNumber}</div>;
+
+            return (<div className="dip-inline">
+                <div className="dip-inline-title">⛽ Tank Levels — {dip.name || `PO# ${dip.po}`}</div>
+                {Object.entries(dip.latestData).map(([pn, d]) => {
+                    if (!d.volume) return null;
+                    const fillPct = (d.volume / d.capacity) * 100;
+                    const color = getFillColor(fillPct);
+                    const loaded = loadedProducts?.[pn] || 0;
+                    const newVolume = d.volume + loaded;
+                    const newPct = (newVolume / d.capacity) * 100;
+                    const overCapacity = newVolume > d.capacity;
+                    const overSafe = newVolume > d.capacity * 0.95;
+                    const remainUllage = d.capacity - d.volume - loaded;
+
+                    return (<div key={pn} className="dip-inline-row" style={{flexDirection:'column',alignItems:'stretch',marginBottom:'0.5rem'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
+                            <span className="dip-inline-name">{pn}</span>
+                            <div className="dip-inline-bar">
+                                <div className={`dip-inline-fill ${color}`} style={{width:`${Math.min(fillPct,100)}%`}}>
+                                    {fillPct > 15 && <span className="dip-inline-pct">{fillPct.toFixed(0)}%</span>}
+                                </div>
+                                {loaded > 0 && <div className="dip-load-overlay" style={{width:`${Math.min(newPct,100)}%`}}>
+                                    <span className="dip-load-label" style={{right: newPct > 50 ? '4px' : 'auto', left: newPct <= 50 ? `${Math.min(fillPct+1,90)}%` : 'auto'}}>+{loaded.toLocaleString()}L</span>
+                                </div>}
+                            </div>
+                            <span className="dip-inline-stats" style={{minWidth:130}}>
+                                <span style={{fontWeight:700,color:'var(--text-primary)'}}>{d.volume.toLocaleString()}</span>
+                                <span style={{color:'var(--text-tertiary)'}}> / {d.capacity.toLocaleString()} L</span>
+                            </span>
+                        </div>
+                        <div style={{display:'flex',gap:'0.5rem',marginLeft:'85px',marginTop:'0.15rem',flexWrap:'wrap',alignItems:'center'}}>
+                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Ullage: {d.ullage.toLocaleString()}L</span>
+                            {loaded > 0 && (<>
+                                <span style={{fontSize:'0.5rem',color:'var(--text-tertiary)'}}>•</span>
+                                {overCapacity ? (
+                                    <span className="overload-warning">🚫 OVER CAPACITY by {(newVolume - d.capacity).toLocaleString()}L — Tank only holds {d.ullage.toLocaleString()}L more!</span>
+                                ) : overSafe ? (
+                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#D97706',background:'#FFFBEB',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>⚠️ Past 95% safe fill — {remainUllage.toLocaleString()}L to max capacity</span>
+                                ) : (
+                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#16A34A',background:'#F0FDF4',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>✅ +{loaded.toLocaleString()}L — {remainUllage.toLocaleString()}L ullage remaining</span>
+                                )}
+                            </>)}
+                        </div>
+                    </div>);
+                })}
+            </div>);
         }
 
         // ==================== PDF GENERATION ====================
@@ -348,117 +560,103 @@
             const pw = doc.internal.pageSize.getWidth();
             const m = 15;
             let y = m;
-            const fmtDate = (ds) => { const [yr,mo,dy] = ds.split('-').map(Number); return new Date(yr, mo-1, dy).toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'}); };
-
-            // Header
-            doc.setFillColor(30, 95, 140);
-            doc.rect(0, 0, pw, 32, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+            const fd = (ds) => { const [yr,mo,dy] = ds.split('-').map(Number); return new Date(yr,mo-1,dy).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); };
+            doc.setFillColor(30,95,140); doc.rect(0,0,pw,32,'F');
+            doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont('helvetica','bold');
             doc.text('SCHOONER TRANSPORT', m, 14);
-            doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10); doc.setFont('helvetica','normal');
             doc.text('Delivery Plan', m, 22);
-            doc.text(fmtDate(deliveryDate), pw - m, 14, { align: 'right' });
-            doc.text(`Driver: ${driverName}  |  Truck: ${truckNumber}  |  Trailer: ${trailerNumber}`, pw - m, 22, { align: 'right' });
+            doc.text(fd(deliveryDate), pw-m, 14, {align:'right'});
+            doc.text(`Driver: ${driverName}  |  Truck: ${truckNumber}  |  Trailer: ${trailerNumber}`, pw-m, 22, {align:'right'});
             y = 42;
-
-            // Driver info box
-            doc.setFillColor(241, 245, 249);
-            doc.roundedRect(m, y, pw - 2*m, 20, 3, 3, 'F');
-            doc.setTextColor(15, 23, 42); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-            doc.text(`Driver: ${driverName}`, m + 5, y + 8);
-            doc.text(`Truck: ${truckNumber}`, m + 70, y + 8);
-            doc.text(`Trailer: ${trailerNumber}`, m + 130, y + 8);
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-            doc.text(`Date: ${fmtDate(deliveryDate)}`, m + 5, y + 16);
-            y += 28;
-
-            // Stops
+            doc.setFillColor(241,245,249); doc.roundedRect(m,y,pw-2*m,18,3,3,'F');
+            doc.setTextColor(15,23,42); doc.setFontSize(10); doc.setFont('helvetica','bold');
+            doc.text(`Driver: ${driverName}`, m+5, y+7);
+            doc.text(`Truck: ${truckNumber}`, m+70, y+7);
+            doc.text(`Trailer: ${trailerNumber}`, m+130, y+7);
+            doc.setFont('helvetica','normal'); doc.setFontSize(8);
+            doc.text(`Date: ${fd(deliveryDate)}`, m+5, y+14);
+            y += 24;
             stops.forEach((stop, si) => {
                 if (!stop.poNumber) return;
-                const poData = PO_DATA[stop.poNumber];
-                if (!poData) return;
-                const td = poData.terminals[stop.terminal];
-                if (!td) return;
-
-                if (y > 240) { doc.addPage(); y = m; }
-
-                // Stop header
-                doc.setFillColor(30, 95, 140);
-                doc.roundedRect(m, y, pw - 2*m, 8, 2, 2, 'F');
-                doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
-                doc.text(`Stop ${si + 1}: ${poData.name}`, m + 4, y + 6);
-                y += 12;
-
-                doc.setTextColor(15, 23, 42); doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-                const lines = [
-                    `Address: ${poData.address}`,
-                    `Terminal: ${stop.terminal}`,
-                    `Customer: ${td.customer}`,
-                    td.account ? `${stop.terminal.includes('IOL') ? 'Destination' : 'Account'}: ${td.account}` : null,
-                    `PO #: ${stop.poNumber}`,
-                    `Products: ${Object.keys(td.products).map(p => `${p}: ${td.products[p]}`).join('  |  ')}`,
-                    stop.pbNumber ? `PB: ${stop.pbNumber}` : null,
-                    stop.lvNumber ? `LV: ${stop.lvNumber}` : null,
-                ].filter(Boolean);
-
-                lines.forEach(l => { doc.text(l, m + 4, y); y += 5; });
-
-                // Compartments table
+                const poData = PO_DATA[stop.poNumber]; if (!poData) return;
+                const td = poData.terminals[stop.terminal]; if (!td) return;
+                if (y > 235) { doc.addPage(); y = m; }
+                doc.setFillColor(30,95,140); doc.roundedRect(m,y,pw-2*m,8,2,2,'F');
+                doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
+                doc.text(`Stop ${si+1}: ${poData.name}`, m+4, y+6); y += 12;
+                doc.setTextColor(15,23,42); doc.setFontSize(8); doc.setFont('helvetica','normal');
+                [`Address: ${poData.address}`,`Terminal: ${stop.terminal}`,`Customer: ${td.customer}`,
+                td.account ? `${stop.terminal.includes('IOL')?'Destination':'Account'}: ${td.account}` : null,
+                `PO #: ${stop.poNumber}`,`Products: ${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('  |  ')}`,
+                stop.pbNumber ? `PB: ${stop.pbNumber}` : null, stop.lvNumber ? `LV: ${stop.lvNumber}` : null
+                ].filter(Boolean).forEach(l => { doc.text(l, m+4, y); y += 4.5; });
                 y += 2;
-                doc.setFillColor(241, 245, 249);
-                doc.rect(m, y, pw - 2*m, 7, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-                doc.text('Comp', m + 4, y + 5);
-                doc.text('Product', m + 25, y + 5);
-                doc.text('Volume (L)', m + 80, y + 5);
-                y += 9;
-
-                doc.setFont('helvetica', 'normal');
-                stop.compartments.forEach((c, ci) => {
-                    if (c.enabled && c.volume > 0) {
-                        doc.text(`C${ci + 1}`, m + 6, y);
-                        doc.text(c.product, m + 25, y);
-                        doc.text(c.volume.toLocaleString(), m + 80, y);
-                        y += 5;
-                    }
-                });
-
-                // Stop total
-                const stopTotal = stop.compartments.reduce((s, c) => s + (c.enabled ? c.volume : 0), 0);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`Stop Total: ${stopTotal.toLocaleString()} L`, m + 60, y);
-                y += 4;
-
-                if (stop.notes) {
-                    doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
-                    doc.text(`Notes: ${stop.notes}`, m + 4, y); y += 5;
-                }
-                y += 8;
+                doc.setFillColor(241,245,249); doc.rect(m,y,pw-2*m,6,'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text('Comp', m+4, y+4.5); doc.text('Product', m+25, y+4.5); doc.text('Volume (L)', m+80, y+4.5); y += 8;
+                doc.setFont('helvetica','normal');
+                stop.compartments.forEach((c, ci) => { if (c.enabled && c.volume > 0) { doc.text(`C${ci+1}`, m+6, y); doc.text(c.product, m+25, y); doc.text(c.volume.toLocaleString(), m+80, y); y += 4.5; }});
+                const st = stop.compartments.reduce((s,c)=>s+(c.enabled?c.volume:0),0);
+                doc.setFont('helvetica','bold'); doc.text(`Stop Total: ${st.toLocaleString()} L`, m+60, y); y += 4;
+                if (stop.notes) { doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.text(`Notes: ${stop.notes}`, m+4, y); y += 4.5; }
+                y += 6;
             });
-
-            // Footer
-            doc.setFontSize(7); doc.setTextColor(148, 163, 184); doc.setFont('helvetica', 'normal');
-            doc.text('Schooner Transport - Fuel Delivery Plan', pw / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
-
-            const safeName = driverName.replace(/[^a-zA-Z0-9]/g, '_');
-            doc.save(`Delivery_Plan_${deliveryDate}_${safeName}.pdf`);
+            doc.setFontSize(6); doc.setTextColor(148,163,184); doc.text('Schooner Transport - Fuel Delivery Plan', pw/2, doc.internal.pageSize.getHeight()-6, {align:'center'});
+            doc.save(`Delivery_Plan_${deliveryDate}_${driverName.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
         }
 
-        // ==================== MAIN DISPATCH SYSTEM ====================
+        // ==================== MAIN APP ====================
         function DispatchSystem() {
             const [activeTab, setActiveTab] = useState('dispatch');
             const [driverName, setDriverName] = useState('');
             const [truckNumber, setTruckNumber] = useState('');
             const [trailerNumber, setTrailerNumber] = useState('');
-            const [deliveryDate, setDeliveryDate] = useState(() => {
-                const t = new Date(); t.setDate(t.getDate() + 1); return t.toISOString().split('T')[0];
-            });
+            const [deliveryDate, setDeliveryDate] = useState(() => { const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().split('T')[0]; });
             const [stops, setStops] = useState([createEmptyStop()]);
+            const [liveDips, setLiveDips] = useState(null);
+            const [dipsLoading, setDipsLoading] = useState(false);
+            const [refreshStatus, setRefreshStatus] = useState(null);
+            const [dipsTabName, setDipsTabName] = useState(() => {
+                // Auto-generate current week's tab name
+                const now = new Date();
+                const day = now.getDay(); // 0=Sun
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - day);
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                const fmt = (d) => `${d.toLocaleString('en',{month:'short'})} ${d.getDate()}`;
+                const suf = (d) => { const n = d.getDate(); const s = ['th','st','nd','rd']; return s[(n%100-20)%10] || s[n%100] || s[0]; };
+                return `Dips ${fmt(startOfWeek)}${suf(startOfWeek)} - ${endOfWeek.getDate()}${suf(endOfWeek)}`;
+            });
+
+            const dipsData = liveDips || DIPS_DATA;
+
+            const refreshDips = async () => {
+                setDipsLoading(true);
+                const result = await fetchLiveDips(dipsTabName);
+                if (result && result.length > 0) {
+                    setLiveDips(result);
+                    DIPS_DATA = result;
+                    setRefreshStatus({ok: true, msg: `✅ ${result.length} stations loaded from "${dipsTabName}"`});
+                } else {
+                    setRefreshStatus({ok: false, msg: `⚠️ Could not fetch from "${dipsTabName}". Check: 1) Sheet is shared publicly 2) Tab name matches exactly`});
+                }
+                setDipsLoading(false);
+            };
 
             const availableProducts = useMemo(() => {
                 if (!trailerNumber || !TRAILERS[trailerNumber]) return [];
                 return Object.keys(TRAILERS[trailerNumber].products).filter(p => TRAILERS[trailerNumber].products[p].length > 0);
+            }, [trailerNumber]);
+
+            // FIX: Reset all stops' compartments when trailer changes
+            useEffect(() => {
+                if (!trailerNumber) return;
+                setStops(prev => prev.map(stop => ({
+                    ...stop,
+                    compartments: Array.from({length: 6}, () => ({ enabled: false, product: '', volume: 0, maxVolume: 0 }))
+                })));
             }, [trailerNumber]);
 
             const addStop = () => setStops([...stops, createEmptyStop()]);
@@ -471,8 +669,8 @@
                         const isLocal = value && LOCAL_TERMINALS.includes(value);
                         const tc = isLocal ? LOCAL_TRAILERS : TRAILERS;
                         const uc = stop.compartments.map((comp, idx) => {
-                            if (comp.enabled && comp.product && tc[trailerNumber]) {
-                                const nv = tc[trailerNumber].products[comp.product]?.[idx] || 0;
+                            if (comp.enabled && comp.product && tc[trailerNumber]?.products[comp.product]) {
+                                const nv = tc[trailerNumber].products[comp.product][idx] || 0;
                                 return { ...comp, maxVolume: nv, volume: nv };
                             }
                             return comp;
@@ -483,10 +681,27 @@
                 }));
             };
 
+            const getUsedCompartments = (excludeStopId) => {
+                const used = new Set();
+                stops.forEach(s => {
+                    if (s.id === excludeStopId) return;
+                    s.compartments.forEach((c, i) => { if (c.enabled) used.add(i); });
+                });
+                return used;
+            };
+
             const toggleCompartment = (stopId, compIndex) => {
+                // Check if compartment is used in another stop
+                const usedByOthers = getUsedCompartments(stopId);
+                if (usedByOthers.has(compIndex)) {
+                    const otherStop = stops.find(s => s.id !== stopId && s.compartments[compIndex]?.enabled);
+                    const otherIdx = otherStop ? stops.indexOf(otherStop) + 1 : '?';
+                    alert(`⚠️ Compartment ${compIndex + 1} is already used in Stop ${otherIdx}!\n\nEach compartment can only be assigned to one stop.`);
+                    return;
+                }
                 setStops(stops.map(stop => {
                     if (stop.id !== stopId) return stop;
-                    const nc = [...stop.compartments];
+                    const nc = stop.compartments.map((c, i) => i === compIndex ? {...c} : c);
                     const c = nc[compIndex];
                     if (!c.enabled) {
                         c.enabled = true;
@@ -495,9 +710,9 @@
                             const isLocal = stop.terminal && LOCAL_TERMINALS.includes(stop.terminal);
                             const tc = isLocal ? LOCAL_TRAILERS : TRAILERS;
                             c.maxVolume = tc[trailerNumber]?.products[c.product]?.[compIndex] || 0;
-                            if (c.volume === 0 || c.volume > c.maxVolume) c.volume = c.maxVolume;
+                            c.volume = c.maxVolume;
                         }
-                    } else { c.enabled = false; }
+                    } else { c.enabled = false; c.volume = 0; }
                     return { ...stop, compartments: nc };
                 }));
             };
@@ -505,7 +720,7 @@
             const updateCompartmentProduct = (stopId, compIndex, product) => {
                 setStops(stops.map(stop => {
                     if (stop.id !== stopId) return stop;
-                    const nc = [...stop.compartments];
+                    const nc = stop.compartments.map((c, i) => i === compIndex ? {...c} : c);
                     const isLocal = stop.terminal && LOCAL_TERMINALS.includes(stop.terminal);
                     const tc = isLocal ? LOCAL_TRAILERS : TRAILERS;
                     const mv = tc[trailerNumber]?.products[product]?.[compIndex] || 0;
@@ -517,231 +732,295 @@
             const updateCompartmentVolume = (stopId, compIndex, volume) => {
                 setStops(stops.map(stop => {
                     if (stop.id !== stopId) return stop;
-                    const nc = [...stop.compartments];
-                    nc[compIndex].volume = Math.min(parseInt(volume) || 0, nc[compIndex].maxVolume);
+                    const nc = stop.compartments.map((c, i) => i === compIndex ? {...c} : c);
+                    const isLocal = stop.terminal && LOCAL_TERMINALS.includes(stop.terminal);
+                    const gasMax = getGasMaxOverride(trailerNumber, compIndex, isLocal);
+                    const hardMax = (nc[compIndex].product === 'Reg Gas' && gasMax) ? gasMax : nc[compIndex].maxVolume;
+                    nc[compIndex].volume = Math.min(parseInt(volume) || 0, hardMax);
                     return { ...stop, compartments: nc };
                 }));
             };
 
             const totalVolume = useMemo(() => stops.reduce((s, st) => s + st.compartments.reduce((ss, c) => ss + (c.enabled ? c.volume : 0), 0), 0), [stops]);
 
-            const formatDate = (dateStr) => {
-                const [year, month, day] = dateStr.split('-').map(Number);
-                return new Date(year, month - 1, day).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            // Calculate loaded products per stop (for dips overlay)
+            const getLoadedProductsForStop = (stop) => {
+                const loaded = {};
+                const dip = findDipsForPO(stop.poNumber);
+                if (!dip) return loaded;
+
+                // Collect total volume per product type from compartments
+                const productTotals = {};
+                stop.compartments.forEach(c => {
+                    if (!c.enabled || !c.volume) return;
+                    const type = getProductType(c.product);
+                    productTotals[type] = (productTotals[type] || 0) + c.volume;
+                });
+
+                // For each product type, distribute load across matching tanks proportionally by ullage
+                Object.entries(productTotals).forEach(([type, totalLoad]) => {
+                    const matchingKeys = Object.keys(dip.latestData).filter(k => matchProductToTank(type, k));
+                    if (matchingKeys.length === 0) return;
+                    if (matchingKeys.length === 1) {
+                        loaded[matchingKeys[0]] = totalLoad;
+                        return;
+                    }
+                    // Distribute proportionally by available ullage
+                    const totalUllage = matchingKeys.reduce((s, k) => s + (dip.latestData[k]?.ullage || 0), 0);
+                    if (totalUllage === 0) {
+                        // Equal split if no ullage data
+                        matchingKeys.forEach(k => { loaded[k] = Math.round(totalLoad / matchingKeys.length); });
+                    } else {
+                        let remaining = totalLoad;
+                        matchingKeys.forEach((k, i) => {
+                            if (i === matchingKeys.length - 1) {
+                                loaded[k] = remaining; // last tank gets remainder
+                            } else {
+                                const share = Math.round(totalLoad * (dip.latestData[k].ullage / totalUllage));
+                                loaded[k] = share;
+                                remaining -= share;
+                            }
+                        });
+                    }
+                });
+                return loaded;
             };
+
+            const getProductType = (product) => {
+                if (['Reg Gas', 'ETHANOL', 'CBOB'].includes(product)) return 'regular';
+                if (['Super Gas'].includes(product)) return 'super';
+                if (['Clear Diesel', 'Dyed Diesel'].includes(product)) return 'diesel';
+                if (['Furnace Oil', 'Stove Oil'].includes(product)) return 'furnace';
+                return 'other';
+            };
+
+            const matchProductToTank = (type, tankName) => {
+                const n = tankName.toLowerCase();
+                if (type === 'regular') return n.includes('reg');
+                if (type === 'super') return n.includes('super') || n.includes('premium') || n.includes('supreme');
+                if (type === 'diesel') return n.includes('diesel');
+                if (type === 'furnace') return n.includes('furnace') || n.includes('stove');
+                return false;
+            };
+
+            const formatDate = (ds) => { const [y,m,d] = ds.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); };
 
             const generateEmail = () => {
                 if (!driverName || !truckNumber || !trailerNumber) return '';
                 let email = `Hello ${driverName}.\nFor ${formatDate(deliveryDate)} using Truck ${truckNumber} and Trailer ${trailerNumber}.\nYou will be doing.\n\n`;
-                stops.forEach((stop, si) => {
+                stops.forEach((stop) => {
                     if (!stop.poNumber) return;
                     const poData = PO_DATA[stop.poNumber]; if (!poData) return;
                     const td = poData.terminals[stop.terminal]; if (!td) return;
                     email += `${poData.name}: ${poData.address}\nTerminal: ${stop.terminal}\nCustomer: ${td.customer}\n`;
-                    if (td.account) email += `${stop.terminal.includes('IOL') ? 'Destination' : 'Account'}: ${td.account}\n`;
-                    email += `PO #: ${stop.poNumber}\n`;
-                    email += Object.keys(td.products).map(p => `${p}: ${td.products[p]}`).join('    ') + '\n';
+                    if (td.account) email += `${stop.terminal.includes('IOL')?'Destination':'Account'}: ${td.account}\n`;
+                    email += `PO #: ${stop.poNumber}\n${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('    ')}\n`;
                     if (stop.pbNumber) email += `PB${stop.pbNumber}\n`;
                     if (stop.lvNumber) email += `LV${stop.lvNumber}\n`;
-                    stop.compartments.forEach((c, i) => { if (c.enabled && c.volume > 0) email += `${i+1} - ${c.volume.toLocaleString()} ${c.product}\n`; });
+                    stop.compartments.forEach((c,i) => { if (c.enabled && c.volume > 0) email += `${i+1} - ${c.volume.toLocaleString()} ${c.product}\n`; });
                     if (stop.notes) email += `${stop.notes}\n`;
                     email += '\n';
                 });
-                email += 'Thank you';
-                return email;
+                return email + 'Thank you';
             };
 
-            const copyEmail = () => { navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied to clipboard!'); };
-
-            const sendToDriver = () => {
-                const subject = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`);
-                const body = encodeURIComponent(generateEmail());
-                window.location.href = `mailto:?subject=${subject}&body=${body}`;
-            };
-
+            const copyEmail = () => { navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
+            const sendToDriver = () => { const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
             const isFormComplete = driverName && truckNumber && trailerNumber && stops.some(s => s.poNumber && s.terminal);
+            const criticalCount = useMemo(() => { let c = 0; dipsData.forEach(s => Object.values(s.latestData).forEach(p => { if (p.volume && (p.volume/p.capacity) <= 0.30) c++; })); return c; }, [dipsData]);
 
-            // Count critical dips for badge
-            const criticalCount = useMemo(() => {
-                let c = 0;
-                DIPS_DATA.forEach(s => Object.values(s.latestData).forEach(p => { if (p.volume !== null && (p.volume/p.capacity) <= 0.30) c++; }));
-                return c;
-            }, []);
+            return (<div className="app-container">
+                <header className="header"><div className="header-content">
+                    <div className="header-left"><div className="logo-circle">🚛</div><div className="header-text"><h1>Schooner Transport Dispatch</h1><p>Professional Fuel Delivery Management</p></div></div>
+                    <div className="header-stats"><div className="stat-box"><div className="stat-label">Stops</div><div className="stat-value">{stops.length}</div></div><div className="stat-box"><div className="stat-label">Total Volume</div><div className="stat-value">{(totalVolume/1000).toFixed(1)}K</div></div></div>
+                </div></header>
 
-            return (
-                <div className="app-container">
-                    <header className="header">
-                        <div className="header-content">
-                            <div className="header-left">
-                                <div className="logo-circle">🚛</div>
-                                <div className="header-text">
-                                    <h1>Schooner Transport Dispatch</h1>
-                                    <p>Professional Fuel Delivery Management</p>
+                <div className="tab-nav">
+                    <button className={`tab-btn ${activeTab === 'dispatch' ? 'active' : ''}`} onClick={() => setActiveTab('dispatch')}>📋 Dispatch</button>
+                    <button className={`tab-btn ${activeTab === 'dips' ? 'active' : ''}`} onClick={() => setActiveTab('dips')}>⛽ Fuel Dips {criticalCount > 0 && <span className="tab-badge">{criticalCount}</span>}</button>
+                </div>
+
+                {activeTab === 'dips' ? (
+                    <div className="card"><div className="card-header">
+                        <div className="card-icon">⛽</div><h2 className="card-title">Live Fuel Inventory (Dips)</h2>
+                        <div style={{display:'flex',gap:'0.375rem',alignItems:'center',flexWrap:'wrap'}}>
+                            <input className="form-input" style={{width:220,fontSize:'0.6875rem',padding:'0.375rem 0.5rem'}} value={dipsTabName} onChange={e => {setDipsTabName(e.target.value); setRefreshStatus(null);}} placeholder="Tab name e.g. Dips Feb 1st - 7th" />
+                            <button className={`refresh-btn ${dipsLoading ? 'loading' : ''}`} onClick={refreshDips}>{dipsLoading ? '⏳ Loading...' : '🔄 Refresh Live'}</button>
+                            {refreshStatus && <div style={{fontSize:'0.5625rem',fontWeight:600,color:refreshStatus.ok?'#16A34A':'#DC2626',maxWidth:400}}>
+                                {refreshStatus.msg}
+                                {!refreshStatus.ok && <div style={{color:'var(--text-tertiary)',fontWeight:500,marginTop:'0.15rem'}}>
+                                    If running locally (file://), the browser blocks cross-origin requests.<br/>
+                                    Fix: Host this file on a web server or use a simple local server:<br/>
+                                    <code style={{background:'#F1F5F9',padding:'0.1rem 0.25rem',borderRadius:'3px',fontSize:'0.5rem'}}>python3 -m http.server 8080</code> then open <code style={{background:'#F1F5F9',padding:'0.1rem 0.25rem',borderRadius:'3px',fontSize:'0.5rem'}}>localhost:8080</code>
+                                </div>}
+                            </div>}
+                        </div>
+                    </div><div className="card-body"><DipsDashboard dipsData={dipsData} /></div></div>
+                ) : (
+                    <div className="main-layout">
+                        <div className="card"><div className="card-header"><div className="card-icon">📋</div><h2 className="card-title">Create Delivery Order</h2></div>
+                        <div className="card-body">
+                            <div className="form-section">
+                                <div className="section-title"><span>👤</span> Delivery Information</div>
+                                <div className="form-grid">
+                                    <div className="form-group"><label className="form-label form-label-required">Driver Name</label><input type="text" className="form-input" placeholder="e.g., Duane" value={driverName} onChange={e => setDriverName(e.target.value)} /></div>
+                                    <div className="form-group"><label className="form-label form-label-required">Truck Number</label><input type="text" className="form-input" placeholder="e.g., 2125" value={truckNumber} onChange={e => setTruckNumber(e.target.value)} /></div>
+                                    <div className="form-group form-group-full"><label className="form-label form-label-required">Trailer</label>
+                                        <select className="form-select" value={trailerNumber} onChange={e => setTrailerNumber(e.target.value)}>
+                                            <option value="">Select Trailer...</option>
+                                            {Object.keys(TRAILERS).map(t => <option key={t} value={t}>{t}{isSingleCompartment(t) ? ' (Quad - Single Comp)' : ' (Train - 6 Comp)'}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group form-group-full"><label className="form-label form-label-required">Delivery Date</label><input type="date" className="form-input" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} /></div>
                                 </div>
                             </div>
-                            <div className="header-stats">
-                                <div className="stat-box"><div className="stat-label">Stops</div><div className="stat-value">{stops.length}</div></div>
-                                <div className="stat-box"><div className="stat-label">Total Volume</div><div className="stat-value">{(totalVolume / 1000).toFixed(1)}K</div></div>
-                            </div>
-                        </div>
-                    </header>
+                            {trailerNumber && (<div className="stops-container">
+                                {stops.map((stop, si) => {
+                                    const isLocal = stop.terminal && LOCAL_TERMINALS.includes(stop.terminal);
+                                    const stopTotal = stop.compartments.reduce((s,c) => s + (c.enabled ? c.volume : 0), 0);
+                                    const loadedProducts = getLoadedProductsForStop(stop);
 
-                    {/* Tab Navigation */}
-                    <div className="tab-nav">
-                        <button className={`tab-btn ${activeTab === 'dispatch' ? 'active' : ''}`} onClick={() => setActiveTab('dispatch')}>📋 Dispatch</button>
-                        <button className={`tab-btn ${activeTab === 'dips' ? 'active' : ''}`} onClick={() => setActiveTab('dips')}>
-                            ⛽ Fuel Dips {criticalCount > 0 && <span className="tab-badge">{criticalCount}</span>}
-                        </button>
-                    </div>
-
-                    {activeTab === 'dips' ? (
-                        <div className="card"><div className="card-header"><div className="card-icon">⛽</div><h2 className="card-title">Live Fuel Inventory (Dips)</h2></div><div className="card-body"><DipsDashboard /></div></div>
-                    ) : (
-                        <div className="main-layout">
-                            <div className="card">
-                                <div className="card-header"><div className="card-icon">📋</div><h2 className="card-title">Create Delivery Order</h2></div>
-                                <div className="card-body">
-                                    <div className="form-section">
-                                        <div className="section-title"><span>👤</span> Delivery Information</div>
+                                    return (<div key={stop.id} className="stop-card">
+                                        <div className="stop-header">
+                                            <div style={{display:'flex',alignItems:'center',gap:'0.75rem'}}><span className="stop-badge">Stop {si+1}</span>
+                                            {isLocal && <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#059669',background:'#D1FAE5',padding:'0.1rem 0.4rem',borderRadius:'4px'}}>LOCAL (Ottawa)</span>}
+                                            {stop.terminal && !isLocal && <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#1D4ED8',background:'#DBEAFE',padding:'0.1rem 0.4rem',borderRadius:'4px'}}>MONTRÉAL</span>}
+                                            </div>
+                                            {stops.length > 1 && <button className="stop-remove" onClick={() => removeStop(stop.id)}>✕</button>}
+                                        </div>
                                         <div className="form-grid">
-                                            <div className="form-group">
-                                                <label className="form-label form-label-required">Driver Name</label>
-                                                <input type="text" className="form-input" placeholder="e.g., Duane" value={driverName} onChange={e => setDriverName(e.target.value)} />
-                                            </div>
-                                            <div className="form-group">
-                                                <label className="form-label form-label-required">Truck Number</label>
-                                                <input type="text" className="form-input" placeholder="e.g., 2125" value={truckNumber} onChange={e => setTruckNumber(e.target.value)} />
-                                            </div>
-                                            <div className="form-group form-group-full">
-                                                <label className="form-label form-label-required">Trailer</label>
-                                                <select className="form-select" value={trailerNumber} onChange={e => setTrailerNumber(e.target.value)}>
-                                                    <option value="">Select Trailer...</option>
-                                                    {Object.keys(TRAILERS).map(t => <option key={t} value={t}>{t}</option>)}
+                                            <div className="form-group form-group-full"><label className="form-label form-label-required">PO Number</label>
+                                                <select className="form-select" value={stop.poNumber} onChange={e => updateStop(stop.id, 'poNumber', e.target.value)}>
+                                                    <option value="">Select PO...</option>
+                                                    {Object.keys(PO_DATA).map(po => <option key={po} value={po}>{po} - {PO_DATA[po].name}</option>)}
                                                 </select>
                                             </div>
+                                            {stop.poNumber && (<>
+                                                {/* INLINE DIP CARD */}
+                                                <div className="form-group form-group-full"><InlineDipCard poNumber={stop.poNumber} loadedProducts={loadedProducts} /></div>
+                                                <div className="form-group form-group-full"><label className="form-label form-label-required">Terminal</label>
+                                                    <select className="form-select" value={stop.terminal} onChange={e => updateStop(stop.id, 'terminal', e.target.value)}>
+                                                        <option value="">Select Terminal...</option>
+                                                        {Object.keys(PO_DATA[stop.poNumber]?.terminals || {}).map(t => <option key={t} value={t}>{t}{LOCAL_TERMINALS.includes(t) ? ' (Local)' : ''}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="form-group"><label className="form-label">PB Number</label><input type="text" className="form-input" placeholder="PB#" value={stop.pbNumber} onChange={e => updateStop(stop.id, 'pbNumber', e.target.value)} /></div>
+                                                <div className="form-group"><label className="form-label">LV Number</label><input type="text" className="form-input" placeholder="LV#" value={stop.lvNumber} onChange={e => updateStop(stop.id, 'lvNumber', e.target.value)} /></div>
+                                                <div className="form-group form-group-full"><label className="form-label">Notes</label><textarea className="form-textarea" placeholder="Special instructions..." value={stop.notes} onChange={e => updateStop(stop.id, 'notes', e.target.value)} /></div>
+                                            </>)}
                                         </div>
-                                    </div>
-                                    <div className="form-section">
-                                        <div className="form-grid">
-                                            <div className="form-group form-group-full">
-                                                <label className="form-label form-label-required">Delivery Date</label>
-                                                <input type="date" className="form-input" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
+                                        {stop.terminal && (<>
+                                            <div className="section-title"><span>📦</span> Compartments
+                                                <span style={{marginLeft:'auto',fontSize:'0.625rem',fontWeight:600,color:'var(--text-tertiary)'}}>
+                                                    {stop.compartments.filter(c=>c.enabled).map((c,i) => c.product).filter(Boolean).map((p,i) => <span key={i} className={`product-badge ${getProductBadgeClass(p)}`}>{p}</span>)}
+                                                </span>
+                                            </div>
+                                            <div className="compartments-grid">
+                                                {stop.compartments.slice(0, getCompartmentCount(trailerNumber)).map((comp, ci) => {
+                                                    const gasMax = getGasMaxOverride(trailerNumber, ci, isLocal);
+                                                    const canExceed = comp.product === 'Reg Gas' && gasMax && gasMax > comp.maxVolume;
+                                                    const isOverStandard = comp.volume > comp.maxVolume && canExceed;
+                                                    const usedBy = getUsedCompartments(stop.id);
+                                                    const isUsedElsewhere = usedBy.has(ci);
+                                                    const usedInStop = isUsedElsewhere ? stops.findIndex(s => s.id !== stop.id && s.compartments[ci]?.enabled) + 1 : 0;
+                                                    return (<div key={ci} className={`compartment-card ${comp.enabled ? 'active' : ''}`} style={isUsedElsewhere && !comp.enabled ? {opacity:0.5,background:'#FEF2F2',borderColor:'#FECACA'} : {}} onClick={() => toggleCompartment(stop.id, ci)}>
+                                                        <div className="compartment-toggle">{comp.enabled && '✓'}</div>
+                                                        <div className="compartment-number">{isSingleCompartment(trailerNumber) ? 'Tank' : `C${ci+1}`}
+                                                            {isUsedElsewhere && !comp.enabled && <span style={{display:'block',fontSize:'0.5rem',color:'#DC2626',fontWeight:700}}>Stop {usedInStop}</span>}
+                                                        </div>
+                                                        {comp.enabled && (<div onClick={e => e.stopPropagation()}>
+                                                            <div className="compartment-product"><select className="compartment-product-select" value={comp.product} onChange={e => updateCompartmentProduct(stop.id, ci, e.target.value)}>
+                                                                {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
+                                                            </select></div>
+                                                            <div className="compartment-volume"><input type="number" className={`compartment-volume-input ${isOverStandard ? 'over-standard' : ''}`} value={comp.volume} onChange={e => updateCompartmentVolume(stop.id, ci, e.target.value)} max={canExceed ? gasMax : comp.maxVolume} /></div>
+                                                            <div className="compartment-max">Max: {comp.maxVolume.toLocaleString()}L
+                                                                {canExceed && <div className="purple-note">⬆ GAS max: {gasMax.toLocaleString()}L</div>}
+                                                                {isOverStandard && <div style={{fontSize:'0.5rem',color:'#DC2626',fontWeight:700,marginTop:'0.1rem'}}>⚠ Reduce other comps!</div>}
+                                                            </div>
+                                                        </div>)}
+                                                    </div>);
+                                                })}
+                                            </div>
+                                            <div className="total-display">
+                                                <div className="total-label">Stop {si+1} Total</div>
+                                                <div className="total-value">{stopTotal.toLocaleString()} L</div>
+                                            </div>
+                                        </>)}
+                                    </div>);
+                                })}
+                                <button className="btn btn-secondary btn-block" onClick={addStop}>➕ Add Another Stop</button>
+                                {(() => {
+                                    // Calculate trailer standard max (using the non-Gas product defaults)
+                                    const tc = TRAILERS[trailerNumber];
+                                    if (!tc) return null;
+                                    // Standard max = sum of Ethanol capacities (conservative), or Gas if no ethanol
+                                    const products = tc.products;
+                                    const ethComps = products['ETHANOL'] || products['Clear Diesel'] || products['Reg Gas'] || [];
+                                    const gasComps = products['Reg Gas'] || [];
+                                    const standardMax = gasComps.reduce((a,b) => a+b, 0);
+                                    const isOverStandard = totalVolume > standardMax;
+                                    
+                                    // Check each stop for gas override usage
+                                    let hasGasOverride = false;
+                                    stops.forEach(stop => {
+                                        const iL = stop.terminal && LOCAL_TERMINALS.includes(stop.terminal);
+                                        stop.compartments.forEach((c, ci) => {
+                                            if (c.enabled && c.product === 'Reg Gas') {
+                                                const override = getGasMaxOverride(trailerNumber, ci, iL);
+                                                if (override && c.volume > (iL ? (LOCAL_TRAILERS[trailerNumber]?.products['Reg Gas']?.[ci]||0) : (tc.products['Reg Gas']?.[ci]||0))) {
+                                                    hasGasOverride = true;
+                                                }
+                                            }
+                                        });
+                                    });
+
+                                    return (<div style={{marginTop:'0.75rem'}}>
+                                        <div style={{
+                                            background: isOverStandard ? 'linear-gradient(135deg,#DC2626,#EF4444)' : 'linear-gradient(135deg,var(--primary),var(--primary-light))',
+                                            color:'white', padding:'0.75rem 1rem', borderRadius:'var(--radius-md)',
+                                            display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.5rem'
+                                        }}>
+                                            <div>
+                                                <div style={{fontSize:'0.6875rem',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',opacity:0.9}}>
+                                                    {isOverStandard ? '⚠️ TRAILER OVER LIMIT' : '🚛 Trailer Total'}
+                                                </div>
+                                                <div style={{fontSize:'0.625rem',opacity:0.85,marginTop:'0.1rem'}}>
+                                                    Trailer {trailerNumber} max: {standardMax.toLocaleString()} L
+                                                </div>
+                                            </div>
+                                            <div style={{textAlign:'right'}}>
+                                                <div style={{fontSize:'1.35rem',fontWeight:800}}>{totalVolume.toLocaleString()} L</div>
+                                                {isOverStandard && <div style={{fontSize:'0.625rem',fontWeight:700}}>⬆ {(totalVolume - standardMax).toLocaleString()} L over limit — reduce compartments!</div>}
                                             </div>
                                         </div>
-                                    </div>
-                                    {trailerNumber && (
-                                        <div className="stops-container">
-                                            {stops.map((stop, si) => (
-                                                <div key={stop.id} className="stop-card">
-                                                    <div className="stop-header">
-                                                        <div style={{display:'flex',alignItems:'center',gap:'0.75rem'}}>
-                                                            <span className="stop-badge">Stop {si + 1}</span>
-                                                        </div>
-                                                        {stops.length > 1 && <button className="stop-remove" onClick={() => removeStop(stop.id)}>✕ Remove</button>}
-                                                    </div>
-                                                    <div className="form-grid">
-                                                        <div className="form-group form-group-full">
-                                                            <label className="form-label form-label-required">PO Number</label>
-                                                            <select className="form-select" value={stop.poNumber} onChange={e => updateStop(stop.id, 'poNumber', e.target.value)}>
-                                                                <option value="">Select PO...</option>
-                                                                {Object.keys(PO_DATA).map(po => <option key={po} value={po}>{po} - {PO_DATA[po].name}</option>)}
-                                                            </select>
-                                                        </div>
-                                                        {stop.poNumber && (
-                                                            <>
-                                                                <div className="form-group form-group-full">
-                                                                    <label className="form-label form-label-required">Terminal</label>
-                                                                    <select className="form-select" value={stop.terminal} onChange={e => updateStop(stop.id, 'terminal', e.target.value)}>
-                                                                        <option value="">Select Terminal...</option>
-                                                                        {Object.keys(PO_DATA[stop.poNumber]?.terminals || {}).map(t => <option key={t} value={t}>{t}</option>)}
-                                                                    </select>
-                                                                </div>
-                                                                <div className="form-group">
-                                                                    <label className="form-label">PB Number</label>
-                                                                    <input type="text" className="form-input" placeholder="PB#" value={stop.pbNumber} onChange={e => updateStop(stop.id, 'pbNumber', e.target.value)} />
-                                                                </div>
-                                                                <div className="form-group">
-                                                                    <label className="form-label">LV Number</label>
-                                                                    <input type="text" className="form-input" placeholder="LV#" value={stop.lvNumber} onChange={e => updateStop(stop.id, 'lvNumber', e.target.value)} />
-                                                                </div>
-                                                                <div className="form-group form-group-full">
-                                                                    <label className="form-label">Notes</label>
-                                                                    <textarea className="form-textarea" placeholder="Special instructions..." value={stop.notes} onChange={e => updateStop(stop.id, 'notes', e.target.value)} />
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                    {stop.terminal && (
-                                                        <>
-                                                            <div className="section-title"><span>📦</span> Compartments</div>
-                                                            <div className="compartments-grid">
-                                                                {stop.compartments.slice(0, getCompartmentCount(trailerNumber)).map((comp, ci) => (
-                                                                    <div key={ci} className={`compartment-card ${comp.enabled ? 'active' : ''}`} onClick={() => toggleCompartment(stop.id, ci)}>
-                                                                        <div className="compartment-toggle">{comp.enabled && '✓'}</div>
-                                                                        <div className="compartment-number">{isSingleCompartment(trailerNumber) ? 'Tank' : `C${ci + 1}`}</div>
-                                                                        {comp.enabled && (
-                                                                            <div onClick={e => e.stopPropagation()}>
-                                                                                <div className="compartment-product">
-                                                                                    <select className="compartment-product-select" value={comp.product} onChange={e => updateCompartmentProduct(stop.id, ci, e.target.value)}>
-                                                                                        {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
-                                                                                    </select>
-                                                                                </div>
-                                                                                <div className="compartment-volume">
-                                                                                    <input type="number" className="compartment-volume-input" value={comp.volume} onChange={e => updateCompartmentVolume(stop.id, ci, e.target.value)} max={comp.maxVolume} />
-                                                                                </div>
-                                                                                <div className="compartment-max">
-                                                                                    Max: {comp.maxVolume.toLocaleString()}L
-                                                                                    {getPossibleMaxNote(trailerNumber, comp.product, ci, stop.terminal && ["IOL Ottawa","Shell Ottawa","Suncor Ottawa","Valero Maitland"].includes(stop.terminal)) && (
-                                                                                        <div style={{color:'#9333ea',fontWeight:600,marginTop:'2px'}}>{getPossibleMaxNote(trailerNumber, comp.product, ci, stop.terminal && ["IOL Ottawa","Shell Ottawa","Suncor Ottawa","Valero Maitland"].includes(stop.terminal))}</div>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                            <div className="total-display">
-                                                                <div className="total-label">Stop {si + 1} Total</div>
-                                                                <div className="total-value">{stop.compartments.reduce((s, c) => s + (c.enabled ? c.volume : 0), 0).toLocaleString()} L</div>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            ))}
-                                            <button className="btn btn-secondary btn-block" onClick={addStop}>➕ Add Another Stop</button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Right: Email Preview */}
-                            <div className="email-preview">
-                                <div className="card">
-                                    <div className="card-header"><div className="card-icon">✉️</div><h2 className="card-title">Email Preview</h2></div>
-                                    <div className="card-body">
-                                        {isFormComplete ? (
-                                            <>
-                                                <div className="email-content">{generateEmail()}</div>
-                                                <div className="btn-group">
-                                                    <button className="btn btn-success" onClick={copyEmail}>📋 Copy Email</button>
-                                                    <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email Driver</button>
-                                                    <button className="btn btn-warning" onClick={() => generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops)}>📄 Download PDF</button>
-                                                    <button className="btn btn-primary" style={{background:'#7C3AED'}} onClick={() => { generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops); setTimeout(sendToDriver, 500); }}>📎 PDF + Email</button>
-                                                </div>
-                                                <div style={{fontSize:'0.6875rem',color:'var(--text-tertiary)',marginTop:'0.5rem'}}>
-                                                    💡 <strong>PDF + Email</strong>: Downloads PDF first, then opens email. Attach the downloaded PDF to the email before sending.
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="empty-state"><div className="empty-icon">📧</div><div className="empty-text">Fill out the form to see email preview</div></div>
+                                        {hasGasOverride && !isOverStandard && (
+                                            <div style={{marginTop:'0.375rem',fontSize:'0.5625rem',color:'#7C3AED',fontWeight:600,background:'#FAF5FF',padding:'0.375rem 0.625rem',borderRadius:'var(--radius-sm)',border:'1px solid #E9D5FF'}}>
+                                                💜 Using GAS extended capacity on some compartments. Total is within trailer limit.
+                                            </div>
                                         )}
+                                    </div>);
+                                })()}
+                            </div>)}
+                        </div></div>
+
+                        <div className="email-preview"><div className="card">
+                            <div className="card-header"><div className="card-icon">✉️</div><h2 className="card-title">Email Preview</h2></div>
+                            <div className="card-body">
+                                {isFormComplete ? (<>
+                                    <div className="email-content">{generateEmail()}</div>
+                                    <div className="btn-group">
+                                        <button className="btn btn-success" onClick={copyEmail}>📋 Copy</button>
+                                        <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email</button>
+                                        <button className="btn btn-warning" onClick={() => generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops)}>📄 PDF</button>
+                                        <button className="btn btn-primary" style={{background:'#7C3AED'}} onClick={() => { generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops); setTimeout(sendToDriver, 500); }}>📎 PDF+Email</button>
                                     </div>
-                                </div>
+                                    <div style={{fontSize:'0.5625rem',color:'var(--text-tertiary)',marginTop:'0.375rem'}}>💡 PDF+Email: Downloads PDF, then opens email. Attach the PDF before sending.</div>
+                                </>) : (<div className="empty-state"><div className="empty-icon">📧</div><div className="empty-text">Fill out the form to see email preview</div></div>)}
                             </div>
-                        </div>
-                    )}
-                </div>
-            );
+                        </div></div>
+                    </div>
+                )}
+            </div>);
         }
 
         ReactDOM.render(<DispatchSystem />, document.getElementById('root'));
