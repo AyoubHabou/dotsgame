@@ -197,53 +197,88 @@
         // For now, we use the CSV export approach which works for public sheets
         
         async function fetchLiveDips(tabName) {
-            // Try multiple approaches to fetch the sheet
-            const approaches = [
-                // Approach 1: gviz JSON endpoint (works for public sheets)
-                () => {
-                    const encodedTab = encodeURIComponent(tabName);
-                    return fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodedTab}`);
-                },
-                // Approach 2: Try with different common tab name formats
-                () => {
-                    // Try replacing special chars
-                    const altName = tabName.replace(/(\d+)(st|nd|rd|th)/g, '$1');
-                    const encodedTab = encodeURIComponent(altName);
-                    return fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodedTab}`);
-                },
-                // Approach 3: CSV export (sometimes more reliable)
-                () => {
-                    const encodedTab = encodeURIComponent(tabName);
-                    return fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=${encodedTab}`);
-                }
-            ];
+            // Strategy: try multiple Google Sheets endpoints
+            const errors = [];
 
-            for (const tryFetch of approaches) {
-                try {
-                    const response = await tryFetch();
-                    if (!response.ok) continue;
-                    const text = await response.text();
-                    
-                    // Check if it's JSON (gviz response)
-                    const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/);
-                    if (jsonMatch) {
-                        const data = JSON.parse(jsonMatch[1]);
-                        if (data.status === 'error') continue;
+            // Approach 1: gviz JSON (most reliable for public "anyone with link" sheets)
+            // Uses substring(47) to strip the callback wrapper per Google's format
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tabName)}`;
+                console.log('Trying gviz:', url);
+                const resp = await fetch(url);
+                const text = await resp.text();
+                console.log('gviz response length:', text.length, 'starts with:', text.substring(0,80));
+                
+                // Google wraps JSON in: /*O_o*/ google.visualization.Query.setResponse({...});
+                const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+?)\);?\s*$/);
+                if (match) {
+                    const data = JSON.parse(match[1]);
+                    if (data.status === 'ok' && data.table) {
                         const result = parseDipsFromGoogleData(data);
                         if (result && result.length > 0) return result;
+                        errors.push('gviz: parsed but no station data found');
+                    } else {
+                        errors.push('gviz status: ' + (data.status || 'unknown') + ' - ' + JSON.stringify(data.errors || []));
                     }
-                    
-                    // Check if it's CSV
-                    if (text.includes(',') && text.split('\n').length > 5) {
-                        const result = parseDipsFromCSV(text);
-                        if (result && result.length > 0) return result;
-                    }
-                } catch (err) {
-                    console.warn('Fetch approach failed:', err.message);
-                    continue;
+                } else {
+                    // Try the substring(47) approach
+                    try {
+                        const json = JSON.parse(text.substring(47).slice(0,-2));
+                        if (json.table) {
+                            const result = parseDipsFromGoogleData(json);
+                            if (result && result.length > 0) return result;
+                        }
+                    } catch(e2) { /* ignore */ }
+                    errors.push('gviz: could not parse wrapper. Response: ' + text.substring(0, 200));
                 }
+            } catch (err) {
+                errors.push('gviz fetch error: ' + err.message);
             }
-            return null;
+
+            // Approach 2: Try CSV export
+            try {
+                const url2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(tabName)}`;
+                console.log('Trying CSV export:', url2);
+                const resp2 = await fetch(url2);
+                if (resp2.ok) {
+                    const csv = await resp2.text();
+                    if (csv.length > 100 && csv.includes(',')) {
+                        const result = parseDipsFromCSV(csv);
+                        if (result && result.length > 0) return result;
+                        errors.push('CSV: parsed but no station data found');
+                    }
+                } else {
+                    errors.push('CSV export: HTTP ' + resp2.status);
+                }
+            } catch (err) {
+                errors.push('CSV fetch error: ' + err.message);
+            }
+
+            // Approach 3: Try with ordinals removed from tab name
+            try {
+                const altName = tabName.replace(/([\d]+)(st|nd|rd|th)/gi, '$1');
+                if (altName !== tabName) {
+                    const url3 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(altName)}`;
+                    console.log('Trying alt name:', altName);
+                    const resp3 = await fetch(url3);
+                    const text3 = await resp3.text();
+                    const m3 = text3.match(/google\.visualization\.Query\.setResponse\(([\s\S]+?)\);?\s*$/);
+                    if (m3) {
+                        const d3 = JSON.parse(m3[1]);
+                        if (d3.status === 'ok' && d3.table) {
+                            const r3 = parseDipsFromGoogleData(d3);
+                            if (r3 && r3.length > 0) return r3;
+                        }
+                    }
+                    errors.push('Alt name "' + altName + '": no data');
+                }
+            } catch (err) {
+                errors.push('Alt name error: ' + err.message);
+            }
+
+            console.error('All fetch approaches failed:', errors);
+            // Return the errors for display
+            return { error: errors.join(' | ') };
         }
 
         function parseDipsFromCSV(csvText) {
@@ -515,9 +550,11 @@
                     const loaded = loadedProducts?.[pn] || 0;
                     const newVolume = d.volume + loaded;
                     const newPct = (newVolume / d.capacity) * 100;
+                    const safeFill = d.capacity * 0.90;
+                    const safeAvailable = Math.max(0, Math.round(safeFill - d.volume));
+                    const overSafe = loaded > safeAvailable;
                     const overCapacity = newVolume > d.capacity;
-                    const overSafe = newVolume > d.capacity * 0.95;
-                    const remainUllage = d.capacity - d.volume - loaded;
+                    const safeRemaining = Math.round(safeFill - newVolume);
 
                     return (<div key={pn} className="dip-inline-row" style={{flexDirection:'column',alignItems:'stretch',marginBottom:'0.5rem'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
@@ -536,15 +573,15 @@
                             </span>
                         </div>
                         <div style={{display:'flex',gap:'0.5rem',marginLeft:'85px',marginTop:'0.15rem',flexWrap:'wrap',alignItems:'center'}}>
-                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Ullage: {d.ullage.toLocaleString()}L</span>
+                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Safe fill (90%): {safeAvailable.toLocaleString()}L available</span>
                             {loaded > 0 && (<>
                                 <span style={{fontSize:'0.5rem',color:'var(--text-tertiary)'}}>•</span>
                                 {overCapacity ? (
-                                    <span className="overload-warning">🚫 OVER CAPACITY by {(newVolume - d.capacity).toLocaleString()}L — Tank only holds {d.ullage.toLocaleString()}L more!</span>
+                                    <span className="overload-warning">🚫 OVERLOAD by {(newVolume - d.capacity).toLocaleString()}L — tank max is {d.capacity.toLocaleString()}L!</span>
                                 ) : overSafe ? (
-                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#D97706',background:'#FFFBEB',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>⚠️ Past 95% safe fill — {remainUllage.toLocaleString()}L to max capacity</span>
+                                    <span className="overload-warning">⚠️ Exceeds safe fill by {Math.abs(safeRemaining).toLocaleString()}L — safe fill allows {safeAvailable.toLocaleString()}L</span>
                                 ) : (
-                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#16A34A',background:'#F0FDF4',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>✅ +{loaded.toLocaleString()}L — {remainUllage.toLocaleString()}L ullage remaining</span>
+                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#16A34A',background:'#F0FDF4',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>✅ +{loaded.toLocaleString()}L — {safeRemaining.toLocaleString()}L safe fill remaining</span>
                                 )}
                             </>)}
                         </div>
@@ -635,12 +672,14 @@
             const refreshDips = async () => {
                 setDipsLoading(true);
                 const result = await fetchLiveDips(dipsTabName);
-                if (result && result.length > 0) {
+                if (result && !result.error && result.length > 0) {
                     setLiveDips(result);
                     DIPS_DATA = result;
                     setRefreshStatus({ok: true, msg: `✅ ${result.length} stations loaded from "${dipsTabName}"`});
                 } else {
-                    setRefreshStatus({ok: false, msg: `⚠️ Could not fetch from "${dipsTabName}". Check: 1) Sheet is shared publicly 2) Tab name matches exactly`});
+                    const errDetail = result?.error || 'No data returned';
+                    console.error('Refresh failed:', errDetail);
+                    setRefreshStatus({ok: false, msg: `⚠️ Could not fetch "${dipsTabName}".`, detail: errDetail});
                 }
                 setDipsLoading(false);
             };
@@ -846,12 +885,20 @@
                         <div style={{display:'flex',gap:'0.375rem',alignItems:'center',flexWrap:'wrap'}}>
                             <input className="form-input" style={{width:220,fontSize:'0.6875rem',padding:'0.375rem 0.5rem'}} value={dipsTabName} onChange={e => {setDipsTabName(e.target.value); setRefreshStatus(null);}} placeholder="Tab name e.g. Dips Feb 1st - 7th" />
                             <button className={`refresh-btn ${dipsLoading ? 'loading' : ''}`} onClick={refreshDips}>{dipsLoading ? '⏳ Loading...' : '🔄 Refresh Live'}</button>
-                            {refreshStatus && <div style={{fontSize:'0.5625rem',fontWeight:600,color:refreshStatus.ok?'#16A34A':'#DC2626',maxWidth:400}}>
+                            {refreshStatus && <div style={{fontSize:'0.5625rem',fontWeight:600,color:refreshStatus.ok?'#16A34A':'#DC2626',maxWidth:500}}>
                                 {refreshStatus.msg}
                                 {!refreshStatus.ok && <div style={{color:'var(--text-tertiary)',fontWeight:500,marginTop:'0.15rem'}}>
-                                    If running locally (file://), the browser blocks cross-origin requests.<br/>
-                                    Fix: Host this file on a web server or use a simple local server:<br/>
-                                    <code style={{background:'#F1F5F9',padding:'0.1rem 0.25rem',borderRadius:'3px',fontSize:'0.5rem'}}>python3 -m http.server 8080</code> then open <code style={{background:'#F1F5F9',padding:'0.1rem 0.25rem',borderRadius:'3px',fontSize:'0.5rem'}}>localhost:8080</code>
+                                    <details style={{cursor:'pointer'}}>
+                                        <summary style={{color:'var(--text-secondary)'}}>Debug details (click to expand)</summary>
+                                        <div style={{marginTop:'0.25rem',fontSize:'0.5rem',background:'#F8FAFC',padding:'0.375rem',borderRadius:'4px',maxHeight:'80px',overflow:'auto',wordBreak:'break-all'}}>
+                                            {refreshStatus.detail}
+                                        </div>
+                                        <div style={{marginTop:'0.25rem'}}>
+                                            Make sure: 1) Google Sheet → Share → "Anyone with the link" = Viewer<br/>
+                                            2) Tab name matches exactly (copy from sheet tab)<br/>
+                                            3) Open browser console (F12) for full error logs
+                                        </div>
+                                    </details>
                                 </div>}
                             </div>}
                         </div>
@@ -935,7 +982,7 @@
                                                             <div className="compartment-volume"><input type="number" className={`compartment-volume-input ${isOverStandard ? 'over-standard' : ''}`} value={comp.volume} onChange={e => updateCompartmentVolume(stop.id, ci, e.target.value)} max={canExceed ? gasMax : comp.maxVolume} /></div>
                                                             <div className="compartment-max">Max: {comp.maxVolume.toLocaleString()}L
                                                                 {canExceed && <div className="purple-note">⬆ GAS max: {gasMax.toLocaleString()}L</div>}
-                                                                {isOverStandard && <div style={{fontSize:'0.5rem',color:'#DC2626',fontWeight:700,marginTop:'0.1rem'}}>⚠ Reduce other comps!</div>}
+                                                                
                                                             </div>
                                                         </div>)}
                                                     </div>);
