@@ -285,6 +285,13 @@
         }
 
         function parseDipsFromCSV(csvText) {
+            // Robust number parser - handles commas, spaces, various formats
+            const parseNum = (str) => {
+                if (!str) return NaN;
+                // Remove everything except digits, dots, and minus
+                const cleaned = String(str).replace(/[^0-9.\-]/g, '');
+                return parseFloat(cleaned) || 0;
+            };
             // Smart CSV parser that handles quoted fields with commas/newlines
             const parseCSVLine = (line) => {
                 const cells = [];
@@ -391,8 +398,8 @@
                     // Ullage columns are D(3), F(5), H(7), J(9)
                     for (const col of [2, 4, 6, 8]) {
                         const pName = nameRow ? (nameRow[col] || '').trim() : '';
-                        const capStr = (row[col] || '').replace(/,/g, '').trim();
-                        const cap = parseFloat(capStr);
+                        const capRaw = (row[col] || '').trim();
+                        const cap = parseNum(capRaw);
                         if (pName && cap > 0) {
                             productCols.push({ name: pName, capacity: cap, colVol: col, colUll: col + 1 });
                             currentStation.products.push({ name: pName, capacity: cap });
@@ -400,7 +407,9 @@
                     }
                     hasCapRow = productCols.length > 0;
                     if (hasCapRow) {
-                        console.log(`    Products: ${productCols.map(p => p.name + '(' + p.capacity + ')').join(', ')}`);
+                        console.log(`    Products: ${productCols.map(p => p.name + ' cap=' + p.capacity + ' col=' + p.colVol).join(', ')}`);
+                        // Log raw capacity values for debugging
+                        console.log(`    Raw caps: ${[2,4,6,8].map(c => '['+c+']='+(row[c]||'').substring(0,15)).join(' ')}`);
                     }
                     continue;
                 }
@@ -409,14 +418,14 @@
                 const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
                 if (hasCapRow && currentStation && dayNames.includes(colBup)) {
                     for (const pc of productCols) {
-                        const volStr = (row[pc.colVol] || '').replace(/,/g, '').trim();
-                        const ullStr = (row[pc.colUll] || '').replace(/,/g, '').trim();
-                        const vol = parseFloat(volStr);
-                        const ull = parseFloat(ullStr);
+                        const volRaw = (row[pc.colVol] || '').trim();
+                        const ullRaw = (row[pc.colUll] || '').trim();
+                        const vol = parseNum(volRaw);
+                        const ull = parseNum(ullRaw);
                         if (vol > 0 && !isNaN(vol)) {
                             currentStation.latestData[pc.name] = {
                                 volume: Math.round(vol),
-                                ullage: Math.round(!isNaN(ull) ? ull : (pc.capacity - vol)),
+                                ullage: Math.round(!isNaN(ull) && ull > 0 ? ull : (pc.capacity - vol)),
                                 capacity: Math.round(pc.capacity)
                             };
                             currentStation.latestDay = colBup;
