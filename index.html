@@ -764,7 +764,7 @@
                             </span>
                         </div>
                         <div style={{display:'flex',gap:'0.5rem',marginLeft:'85px',marginTop:'0.15rem',flexWrap:'wrap',alignItems:'center'}}>
-                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Safe fill (90%): {safeAvailable.toLocaleString()}L available</span>
+                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Ullage: <span style={{color:'var(--text-secondary)'}}>{d.ullage.toLocaleString()}L</span> · Safe fill: <span style={{color:'#7C3AED'}}>{safeAvailable.toLocaleString()}L</span></span>
                             {loaded > 0 && (<>
                                 <span style={{fontSize:'0.5rem',color:'var(--text-tertiary)'}}>•</span>
                                 {overCapacity ? (
