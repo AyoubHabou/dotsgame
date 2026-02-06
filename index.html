@@ -668,13 +668,12 @@
             return 'other';
         };
 
-        // Gas world colors for dispatch compartments
         const getProductColor = (name) => {
             const n = name.toLowerCase();
-            if (n.includes('super') || n.includes('premium') || n.includes('supreme')) return { bg: '#FEE2E2', border: '#EF4444', text: '#DC2626', label: '🔴' };
-            if (n.includes('diesel') || n.includes('dyed') || n.includes('furnace') || n.includes('stove')) return { bg: '#FFF7ED', border: '#F97316', text: '#EA580C', label: '🟠' };
-            if (n.includes('gas') || n.includes('reg') || n.includes('ethanol') || n.includes('cbob')) return { bg: '#F0FDF4', border: '#22C55E', text: '#16A34A', label: '🟢' };
-            return { bg: '#F8FAFC', border: '#94A3B8', text: '#475569', label: '⚪' };
+            if (n.includes('super') || n.includes('premium') || n.includes('supreme')) return { bg: '#FEE2E2', border: '#EF4444', text: '#DC2626' };
+            if (n.includes('diesel') || n.includes('dyed') || n.includes('furnace') || n.includes('stove')) return { bg: '#FFF7ED', border: '#F97316', text: '#EA580C' };
+            if (n.includes('gas') || n.includes('reg') || n.includes('ethanol') || n.includes('cbob')) return { bg: '#F0FDF4', border: '#22C55E', text: '#16A34A' };
+            return { bg: '#F8FAFC', border: '#94A3B8', text: '#475569' };
         };
 
         // Find dips data for a PO number
@@ -742,131 +741,52 @@
             if (!dip) return <div style={{fontSize:'0.625rem',color:'var(--text-tertiary)',padding:'0.375rem 0',fontStyle:'italic'}}>No dip data for PO# {poNumber}</div>;
 
             return (<div className="dip-inline">
-                <div className="dip-inline-title">⛽ Tank Levels — {dip.name || `PO# ${dip.po}`}</div>
+                <div className="dip-inline-title">{'⛽ Tank Levels — '+(dip.name || ('PO# '+dip.po))}</div>
                 {Object.entries(dip.latestData).map(([pn, d]) => {
-                    if (!d.volume) return null;
-                    const fillPct = (d.volume / d.capacity) * 100;
+                    if (!d.volume && d.volume !== 0) return null;
+                    const fillPct = d.capacity > 0 ? (d.volume / d.capacity) * 100 : 0;
                     const color = getFillColor(fillPct);
-                    const loaded = loadedProducts?.[pn] || 0;
+                    const loaded = (loadedProducts && loadedProducts[pn]) || 0;
                     const newVolume = d.volume + loaded;
-                    const newPct = (newVolume / d.capacity) * 100;
+                    const newPct = d.capacity > 0 ? (newVolume / d.capacity) * 100 : 0;
                     const overUllage = loaded > d.ullage;
-                    const overCapacity = newVolume > d.capacity;
+                    const overCap = newVolume > d.capacity;
                     const remaining = d.ullage - loaded;
-                    
-                    // Product color for the bar overlay
-                    const pColor = getProductColor(pn);
+                    const pc = getProductColor(pn);
 
                     return (<div key={pn} className="dip-inline-row" style={{flexDirection:'column',alignItems:'stretch',marginBottom:'0.5rem'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
-                            <span className="dip-inline-name" style={{color: pColor.text}}>{pn}</span>
+                            <span className="dip-inline-name" style={{color:pc.text,fontWeight:700}}>{pn}</span>
                             <div className="dip-inline-bar">
-                                <div className={`dip-inline-fill ${color}`} style={{width:`${Math.min(fillPct,100)}%`}}>
-                                    {fillPct > 15 && <span className="dip-inline-pct">{fillPct.toFixed(0)}%</span>}
+                                <div className={'dip-inline-fill '+color} style={{width:Math.min(fillPct,100)+'%'}}>
+                                    {fillPct > 15 && <span className="dip-inline-pct">{fillPct.toFixed(0)+'%'}</span>}
                                 </div>
-                                {loaded > 0 && <div className="dip-load-overlay" style={{width:`${Math.min(newPct,100)}%`}}>
-                                    <span className="dip-load-label" style={{right: newPct > 50 ? '4px' : 'auto', left: newPct <= 50 ? `${Math.min(fillPct+1,90)}%` : 'auto'}}>+{loaded.toLocaleString()}L</span>
+                                {loaded > 0 && <div className="dip-load-overlay" style={{width:Math.min(newPct,100)+'%'}}>
+                                    <span className="dip-load-label" style={{right:newPct>50?'4px':'auto',left:newPct<=50?(Math.min(fillPct+1,90)+'%'):'auto'}}>
+                                        {'+'+loaded.toLocaleString()+'L'}
+                                    </span>
                                 </div>}
                             </div>
                             <span className="dip-inline-stats" style={{minWidth:130}}>
                                 <span style={{fontWeight:700,color:'var(--text-primary)'}}>{d.volume.toLocaleString()}</span>
-                                <span style={{color:'var(--text-tertiary)'}}> / {d.capacity.toLocaleString()} L</span>
+                                <span style={{color:'var(--text-tertiary)'}}>{' / '+d.capacity.toLocaleString()+' L'}</span>
                             </span>
                         </div>
                         <div style={{display:'flex',gap:'0.5rem',marginLeft:'85px',marginTop:'0.15rem',flexWrap:'wrap',alignItems:'center'}}>
-                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Ullage: <span style={{color:'var(--text-secondary)',fontWeight:700}}>{d.ullage.toLocaleString()}L</span></span>
-                            {loaded > 0 && (<>
-                                <span style={{fontSize:'0.5rem',color:'var(--text-tertiary)'}}>•</span>
-                                {overCapacity ? (
-                                    <span className="overload-warning">🚫 OVERLOAD by {(newVolume - d.capacity).toLocaleString()}L — tank max is {d.capacity.toLocaleString()}L!</span>
+                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Ullage: <span style={{color:'var(--text-secondary)',fontWeight:700}}>{d.ullage.toLocaleString()+'L'}</span></span>
+                            {loaded > 0 && (<React.Fragment>
+                                <span style={{fontSize:'0.5rem',color:'var(--text-tertiary)'}}>{'\u2022'}</span>
+                                {overCap ? (
+                                    <span className="overload-warning">{'\ud83d\udeab OVERLOAD by '+(newVolume-d.capacity).toLocaleString()+'L \u2014 tank max '+d.capacity.toLocaleString()+'L!'}</span>
                                 ) : overUllage ? (
-                                    <span className="overload-warning">⚠️ Exceeds ullage by {Math.abs(remaining).toLocaleString()}L — ullage is {d.ullage.toLocaleString()}L</span>
+                                    <span className="overload-warning">{'\u26a0\ufe0f Exceeds ullage by '+Math.abs(remaining).toLocaleString()+'L \u2014 ullage is '+d.ullage.toLocaleString()+'L'}</span>
                                 ) : (
-                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#16A34A',background:'#F0FDF4',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>✅ +{loaded.toLocaleString()}L — {remaining.toLocaleString()}L ullage left</span>
+                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#16A34A',background:'#F0FDF4',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>{'\u2705 +'+loaded.toLocaleString()+'L \u2014 '+remaining.toLocaleString()+'L ullage left'}</span>
                                 )}
-                            </>)}
+                            </React.Fragment>)}
                         </div>
                     </div>);
                 })}
-            </div>);
-        }) {
-            const dip = findDipsForPO(poNumber);
-            if (!dip) return <div style={{fontSize:'0.625rem',color:'var(--text-tertiary)',padding:'0.375rem 0',fontStyle:'italic'}}>No dip data for PO# {poNumber}</div>;
-
-            return (<div className="dip-inline">
-                <div className="dip-inline-title">⛽ Tank Levels — {dip.name || `PO# ${dip.po}`}</div>
-                {(() => {
-                    // Group tanks by product type for combined ullage display
-                    const entries = Object.entries(dip.latestData).filter(([,d]) => d.volume !== null);
-                    const productGroups = {};
-                    entries.forEach(([pn, d]) => {
-                        const type = ['reg','regular'].some(t => pn.toLowerCase().includes(t)) ? 'reg' :
-                                     ['super','premium','supreme'].some(t => pn.toLowerCase().includes(t)) ? 'super' :
-                                     ['diesel','dyed'].some(t => pn.toLowerCase().includes(t)) ? 'diesel' : 'other';
-                        if (!productGroups[type]) productGroups[type] = [];
-                        productGroups[type].push(pn);
-                    });
-                    
-                    return entries.map(([pn, d]) => {
-                    if (!d.volume) return null;
-                    const fillPct = (d.volume / d.capacity) * 100;
-                    const color = getFillColor(fillPct);
-                    const loaded = loadedProducts?.[pn] || 0;
-                    const newVolume = d.volume + loaded;
-                    const newPct = (newVolume / d.capacity) * 100;
-                    const safeAvailable = d.ullage;
-                    
-                    // For multi-tank products, check total load against combined ullage
-                    const type = ['reg','regular'].some(t => pn.toLowerCase().includes(t)) ? 'reg' :
-                                 ['super','premium','supreme'].some(t => pn.toLowerCase().includes(t)) ? 'super' :
-                                 ['diesel','dyed'].some(t => pn.toLowerCase().includes(t)) ? 'diesel' : 'other';
-                    const siblings = productGroups[type] || [pn];
-                    const isFirstInGroup = siblings[0] === pn;
-                    const totalLoaded = siblings.reduce((s, k) => s + (loadedProducts?.[k] || 0), 0);
-                    const combinedUllage = siblings.reduce((s, k) => s + (dip.latestData[k]?.ullage || 0), 0);
-                    
-                    const overSafe = loaded > safeAvailable;
-                    const overCapacity = newVolume > d.capacity;
-                    const safeRemaining = d.ullage - loaded;
-
-                    return (<div key={pn} className="dip-inline-row" style={{flexDirection:'column',alignItems:'stretch',marginBottom:'0.5rem'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
-                            <span className="dip-inline-name">{pn}</span>
-                            <div className="dip-inline-bar">
-                                <div className={`dip-inline-fill ${color}`} style={{width:`${Math.min(fillPct,100)}%`}}>
-                                    {fillPct > 15 && <span className="dip-inline-pct">{fillPct.toFixed(0)}%</span>}
-                                </div>
-                                {loaded > 0 && <div className="dip-load-overlay" style={{width:`${Math.min(newPct,100)}%`}}>
-                                    <span className="dip-load-label" style={{right: newPct > 50 ? '4px' : 'auto', left: newPct <= 50 ? `${Math.min(fillPct+1,90)}%` : 'auto'}}>+{loaded.toLocaleString()}L</span>
-                                </div>}
-                            </div>
-                            <span className="dip-inline-stats" style={{minWidth:130}}>
-                                <span style={{fontWeight:700,color:'var(--text-primary)'}}>{d.volume.toLocaleString()}</span>
-                                <span style={{color:'var(--text-tertiary)'}}> / {d.capacity.toLocaleString()} L</span>
-                            </span>
-                        </div>
-                        <div style={{display:'flex',gap:'0.5rem',marginLeft:'85px',marginTop:'0.15rem',flexWrap:'wrap',alignItems:'center'}}>
-                            <span style={{fontSize:'0.5625rem',fontWeight:600,color:'var(--text-tertiary)'}}>Ullage: <span style={{color:'var(--text-secondary)',fontWeight:700}}>{d.ullage.toLocaleString()}L</span></span>
-                            {totalLoaded > 0 && isFirstInGroup && siblings.length > 1 && (
-                                <span style={{fontSize:'0.5625rem',fontWeight:600,color:'#7C3AED',background:'#FAF5FF',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>
-                                    Total loading: {totalLoaded.toLocaleString()}L · Combined ullage: {combinedUllage.toLocaleString()}L
-                                    {totalLoaded > combinedUllage ? ' ⚠️ OVER!' : ' ✅'}
-                                </span>
-                            )}
-                            {loaded > 0 && siblings.length === 1 && (<>
-                                <span style={{fontSize:'0.5rem',color:'var(--text-tertiary)'}}>•</span>
-                                {overCapacity ? (
-                                    <span className="overload-warning">🚫 OVERLOAD by {(newVolume - d.capacity).toLocaleString()}L — tank max is {d.capacity.toLocaleString()}L!</span>
-                                ) : overSafe ? (
-                                    <span className="overload-warning">⚠️ Exceeds ullage by {Math.abs(safeRemaining).toLocaleString()}L — ullage is {d.ullage.toLocaleString()}L</span>
-                                ) : (
-                                    <span style={{fontSize:'0.5625rem',fontWeight:700,color:'#16A34A',background:'#F0FDF4',padding:'0.1rem 0.3rem',borderRadius:'3px'}}>✅ +{loaded.toLocaleString()}L — {safeRemaining.toLocaleString()}L ullage remaining</span>
-                                )}
-                            </>)}
-                        </div>
-                    </div>);
-                    });
-                })()}
             </div>);
         }
 
@@ -913,7 +833,7 @@
                 doc.setFont('helvetica','bold'); doc.setFontSize(7);
                 doc.text('Comp', m+4, y+4.5); doc.text('Product', m+25, y+4.5); doc.text('Volume (L)', m+80, y+4.5); y += 8;
                 doc.setFont('helvetica','normal');
-                stop.compartments.forEach((c, ci) => { if (c.enabled && c.volume > 0) { doc.text(`C${ci+1}`, m+6, y); doc.text(c.product, m+25, y); doc.text(c.volume.toLocaleString(), m+70, y); doc.text(c.assignedTank || '', m+95, y); y += 4.5; }});
+                stop.compartments.forEach((c, ci) => { if (c.enabled && c.volume > 0) { doc.text(`C${ci+1}`, m+6, y); doc.text(c.product, m+25, y); doc.text(c.volume.toLocaleString(), m+80, y); y += 4.5; }});
                 const st = stop.compartments.reduce((s,c)=>s+(c.enabled?c.volume:0),0);
                 doc.setFont('helvetica','bold'); doc.text(`Stop Total: ${st.toLocaleString()} L`, m+60, y); y += 4;
                 if (stop.notes) { doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.text(`Notes: ${stop.notes}`, m+4, y); y += 4.5; }
@@ -1060,18 +980,29 @@
                 }));
             };
 
+            const updateCompartmentTank = (stopId, compIndex, tankName) => {
+                setStops(stops.map(stop => {
+                    if (stop.id !== stopId) return stop;
+                    const nc = stop.compartments.map((c, i) => i === compIndex ? {...c, assignedTank: tankName} : c);
+                    return { ...stop, compartments: nc };
+                }));
+            };
+
+            const getMatchingTanks = (poNumber, product) => {
+                const dip = findDipsForPO(poNumber);
+                if (!dip) return [];
+                const type = getProductType(product);
+                return Object.keys(dip.latestData).filter(k => matchProductToTank(type, k));
+            };
+
             const totalVolume = useMemo(() => stops.reduce((s, st) => s + st.compartments.reduce((ss, c) => ss + (c.enabled ? c.volume : 0), 0), 0), [stops]);
 
             // Calculate loaded products per stop (for dips overlay)
             const getLoadedProductsForStop = (stop) => {
-                // Map each compartment's load to its assigned tank
                 const loaded = {};
-                stop.compartments.forEach((c, ci) => {
-                    if (!c.enabled || !c.volume) return;
-                    const tankKey = c.assignedTank || '';
-                    if (tankKey) {
-                        loaded[tankKey] = (loaded[tankKey] || 0) + c.volume;
-                    }
+                stop.compartments.forEach((c) => {
+                    if (!c.enabled || !c.volume || !c.assignedTank) return;
+                    loaded[c.assignedTank] = (loaded[c.assignedTank] || 0) + c.volume;
                 });
                 return loaded;
             };
@@ -1093,14 +1024,6 @@
                 return false;
             };
 
-            // Get matching tank names from dips for a product
-            const getMatchingTanks = (poNumber, product) => {
-                const dip = findDipsForPO(poNumber);
-                if (!dip) return [];
-                const type = getProductType(product);
-                return Object.keys(dip.latestData).filter(k => matchProductToTank(type, k));
-            };
-
             const formatDate = (ds) => { const [y,m,d] = ds.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); };
 
             const generateEmail = () => {
@@ -1115,7 +1038,13 @@
                     email += `PO #: ${stop.poNumber}\n${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('    ')}\n`;
                     if (stop.pbNumber) email += `PB${stop.pbNumber}\n`;
                     if (stop.lvNumber) email += `LV${stop.lvNumber}\n`;
-                    stop.compartments.forEach((c,i) => { if (c.enabled && c.volume > 0) email += `${i+1} - ${c.volume.toLocaleString()} ${c.product}\n`; });
+                    const eTanks = stop.poNumber ? Object.keys(findDipsForPO(stop.poNumber)?.latestData || {}) : [];
+                    stop.compartments.forEach((c,i) => { 
+                        if (c.enabled && c.volume > 0) {
+                            const ti = c.assignedTank ? eTanks.indexOf(c.assignedTank) + 1 : 0;
+                            email += `${i+1} - ${c.volume.toLocaleString()} ${c.product}${ti > 0 ? ' → Tank ' + ti : ''}\n`;
+                        }
+                    });
                     if (stop.notes) email += `${stop.notes}\n`;
                     email += '\n';
                 });
@@ -1218,7 +1147,7 @@
                                         {stop.terminal && (<>
                                             <div className="section-title"><span>📦</span> Compartments
                                                 <span style={{marginLeft:'auto',fontSize:'0.625rem',fontWeight:600,color:'var(--text-tertiary)'}}>
-                                                    {stop.compartments.filter(c=>c.enabled).map((c,i) => c.product).filter(Boolean).map((p,i) => { const pc = getProductColor(p); return <span key={i} style={{display:'inline-block',padding:'0.1rem 0.375rem',borderRadius:'4px',fontSize:'0.5625rem',fontWeight:700,marginRight:'0.2rem',background:pc.bg,color:pc.text,border:`1px solid ${pc.border}`}}>{pc.label} {p}</span>; })}
+                                                    {[...new Set(stop.compartments.filter(c=>c.enabled).map(c=>c.product).filter(Boolean))].map((p,i) => { const pc = getProductColor(p); return <span key={i} style={{display:'inline-block',padding:'0.1rem 0.375rem',borderRadius:'4px',fontSize:'0.5625rem',fontWeight:700,marginRight:'0.2rem',background:pc.bg,color:pc.text,border:'1px solid '+pc.border}}>{p}</span>; })}
                                                 </span>
                                             </div>
                                             <div className="compartments-grid">
@@ -1243,6 +1172,17 @@
                                                                 {canExceed && <div className="purple-note">⬆ GAS max: {gasMax.toLocaleString()}L</div>}
                                                                 
                                                             </div>
+                                                            {stop.poNumber && comp.product && (() => {
+                                                                const tanks = getMatchingTanks(stop.poNumber, comp.product);
+                                                                if (tanks.length === 0) return null;
+                                                                const pcol = getProductColor(comp.product);
+                                                                return <div style={{marginTop:'0.2rem'}}>
+                                                                    <select style={{width:'100%',padding:'0.2rem 0.25rem',border:'1px solid '+(comp.assignedTank?pcol.border:'#CBD5E1'),borderRadius:'4px',fontSize:'0.5625rem',fontFamily:'inherit',background:comp.assignedTank?pcol.bg:'white',fontWeight:comp.assignedTank?700:400,color:comp.assignedTank?pcol.text:'#64748B'}} value={comp.assignedTank} onChange={e => updateCompartmentTank(stop.id, ci, e.target.value)}>
+                                                                        <option value="">{'🎯 Assign tank...'}</option>
+                                                                        {tanks.map((t,ti) => <option key={t} value={t}>{'Tank '+(ti+1)+' ('+t+')'}</option>)}
+                                                                    </select>
+                                                                </div>;
+                                                            })()}
                                                         </div>)}
                                                     </div>);
                                                 })}
