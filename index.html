@@ -311,7 +311,7 @@
                 if (!row || row.length < 3) continue;
                 const colB = row[1] || '';
 
-                if (colB.includes('AM') && colB.includes('PM')) {
+                if (colB.toUpperCase().includes('AM') && colB.toUpperCase().includes('PM') && colB.length < 20) {
                     if (currentStation && Object.keys(currentStation.latestData).length > 0) stations.push(currentStation);
                     let po = '';
                     for (let c = 2; c <= 4; c++) { const m = (row[c]||'').match(/(\d{5})/); if (m && !po) po = m[1]; }
@@ -385,15 +385,31 @@
             };
 
             console.log(`Parsing ${rows.length} rows from Google Sheet...`);
+            // Debug: log first 30 non-empty B column values
+            let debugCount = 0;
+            for (let di = 0; di < Math.min(rows.length, 200); di++) {
+                const dc = rows[di]?.c;
+                if (!dc) continue;
+                const db = dc[1]?.v;
+                if (db !== null && db !== undefined && db !== '') {
+                    console.log(`  Row ${di}: B="${db}" (type: ${typeof db})`, 
+                        dc[2]?.v ? `C="${String(dc[2].v).substring(0,30)}"` : '',
+                        dc[3]?.v ? `D="${String(dc[3].v).substring(0,30)}"` : '');
+                    if (++debugCount >= 30) break;
+                }
+            }
 
             for (let i = 0; i < rows.length; i++) {
                 const cells = rows[i]?.c;
                 if (!cells) continue;
 
                 const colB = getStr(cells, 1);
+                const colBupper = colB.toUpperCase();
 
-                // Detect station header: column B contains "AM" and "PM" (various formats)
-                if (colB && (colB.includes('AM') && colB.includes('PM')) || colB.match(/AM\s*[\\/\\\\]\s*PM/i)) {
+                // Detect station header: column B contains both "AM" and "PM" in any format
+                // Could be: AM\PM, AM\\PM, AM/PM, AM PM, etc.
+                const isStationHeader = colBupper.includes('AM') && colBupper.includes('PM') && colB.length < 20;
+                if (isStationHeader) {
                     // Save previous station
                     if (currentStation && Object.keys(currentStation.latestData).length > 0) {
                         stations.push(currentStation);
@@ -436,7 +452,7 @@
                         let hasNames = false;
                         for (const col of [2, 4, 6, 8]) {
                             const v = getStr(prevCells, col);
-                            if (v && (v.match(/reg|diesel|super|premium|supreme/i) || v.match(/^REG/))) {
+                            if (v && v.match(/reg|diesel|super|premium|supreme|furnace|stove/i)) {
                                 hasNames = true;
                                 break;
                             }
