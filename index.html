@@ -391,7 +391,7 @@
                     // Ullage columns are D(3), F(5), H(7), J(9)
                     for (const col of [2, 4, 6, 8]) {
                         const pName = nameRow ? (nameRow[col] || '').trim() : '';
-                        const capStr = (row[col] || '').trim();
+                        const capStr = (row[col] || '').replace(/,/g, '').trim();
                         const cap = parseFloat(capStr);
                         if (pName && cap > 0) {
                             productCols.push({ name: pName, capacity: cap, colVol: col, colUll: col + 1 });
@@ -409,8 +409,8 @@
                 const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
                 if (hasCapRow && currentStation && dayNames.includes(colBup)) {
                     for (const pc of productCols) {
-                        const volStr = (row[pc.colVol] || '').trim();
-                        const ullStr = (row[pc.colUll] || '').trim();
+                        const volStr = (row[pc.colVol] || '').replace(/,/g, '').trim();
+                        const ullStr = (row[pc.colUll] || '').replace(/,/g, '').trim();
                         const vol = parseFloat(volStr);
                         const ull = parseFloat(ullStr);
                         if (vol > 0 && !isNaN(vol)) {
@@ -454,7 +454,9 @@
             const getNum = (cells, idx) => {
                 const v = cells?.[idx]?.v;
                 if (v === null || v === undefined || v === '') return null;
-                const n = Number(v);
+                // Handle formatted numbers with commas (e.g., "21,585")
+                const cleaned = typeof v === 'string' ? v.replace(/,/g, '') : v;
+                const n = Number(cleaned);
                 return isNaN(n) ? null : n;
             };
 
