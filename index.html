@@ -757,7 +757,7 @@
                     if (!d.volume && d.volume !== 0) return null;
                     const fillPct = d.capacity > 0 ? (d.volume / d.capacity) * 100 : 0;
                     const color = getFillColor(fillPct);
-                    const loaded = (loadedProducts && loadedProducts[pn]) || 0;
+                    const loaded = (loadedProducts && (loadedProducts[pn] || loadedProducts[pn.toLowerCase()])) || 0;
                     const newVolume = d.volume + loaded;
                     const newPct = d.capacity > 0 ? (newVolume / d.capacity) * 100 : 0;
                     const overUllage = loaded > d.ullage;
@@ -1030,7 +1030,9 @@
                 const loaded = {};
                 stop.compartments.forEach((c) => {
                     if (!c.enabled || !c.volume || !c.assignedTank) return;
-                    loaded[c.assignedTank] = (loaded[c.assignedTank] || 0) + c.volume;
+                    // Use lowercase key for case-insensitive matching
+                    const key = c.assignedTank.toLowerCase();
+                    loaded[key] = (loaded[key] || 0) + c.volume;
                 });
                 return loaded;
             };
@@ -1079,8 +1081,8 @@
                                     const eType = getProductType(c.product);
                                     const eMatching = Object.keys(eDip.latestData).filter(k => matchProductToTank(eType, k));
                                     if (eMatching.length > 1) {
-                                        const tankNum = eMatching.indexOf(c.assignedTank) + 1;
-                                        tankLabel = ' → Tank ' + tankNum;
+                                        const tankNum = eMatching.findIndex(k => k.toLowerCase() === c.assignedTank.toLowerCase()) + 1;
+                                        tankLabel = tankNum > 0 ? ' → Tank ' + tankNum : '';
                                     }
                                 }
                             }
