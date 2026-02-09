@@ -111,6 +111,8 @@
         .dips-summary-value{font-size:1.35rem;font-weight:800}
         .dips-summary-label{font-size:0.625rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-top:0.1rem}
         .dips-summary-card.alert .dips-summary-value{color:var(--danger)}
+        .dips-summary-card.active{outline:2.5px solid var(--primary);outline-offset:-2px;box-shadow:0 0 0 3px rgba(30,64,175,0.12)}
+        .dips-summary-card:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:all 0.15s}
         .dips-summary-card.warning .dips-summary-value{color:var(--warning)}
         .dips-summary-card.ok .dips-summary-value{color:var(--success)}
         .dips-toolbar{display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
@@ -689,8 +691,11 @@
             const processedDips = useMemo(() => {
                 let d = data.filter(s => Object.keys(s.latestData).length > 0);
                 if (search) { const q = search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q) || s.po.toLowerCase().includes(q)); }
-                if (filter === 'needs-fuel') d = d.filter(s => Object.values(s.latestData).some(p => p.volume !== null && (p.volume / p.capacity) < 0.40));
-                else if (filter !== 'all') d = d.filter(s => Object.keys(s.latestData).some(n => { const nl = n.toLowerCase(); return filter === 'reg' ? nl.includes('reg') : filter === 'diesel' ? nl.includes('diesel') : (nl.includes('super') || nl.includes('premium') || nl.includes('supreme')); }));
+                if (filter === 'critical') d = d.filter(s => Object.values(s.latestData).some(p => p.volume !== null && p.capacity > 0 && (p.volume / p.capacity) < 0.25));
+                else if (filter === 'warning') d = d.filter(s => { const pcts = Object.values(s.latestData).filter(p => p.volume !== null && p.capacity > 0).map(p => p.volume/p.capacity); const minPct = Math.min(...pcts); return minPct >= 0.25 && minPct < 0.40; });
+                else if (filter === 'ok') d = d.filter(s => { const pcts = Object.values(s.latestData).filter(p => p.volume !== null && p.capacity > 0).map(p => p.volume/p.capacity); return pcts.length > 0 && Math.min(...pcts) >= 0.40; });
+                else if (filter === 'qc') d = d.filter(s => { const n = (s.name || '').toLowerCase(); return n.includes('gat') || n.includes('québec') || n.includes('quebec') || n.includes('hull') || n.includes('aylmer') || n.includes('lorrain') || n.includes('vérendrye') || n.includes('gréber') || n.includes('boul') || n.includes('blvd') || n.includes('chem.') || n.includes('kipawa') || n.includes('témiscaming') || n.includes('vaudreuil') || n.includes('bryson') || n.includes('ave -') || (s.po && s.po.startsWith('5')); });
+                else if (filter === 'on') d = d.filter(s => { const n = (s.name || '').toLowerCase(); return n.includes('ottawa') || n.includes('ont.') || n.includes('ontario') || n.includes('pembroke') || n.includes('arnprior') || n.includes('hawkesbury') || n.includes('rockland') || n.includes('orleans') || n.includes('morrisburg') || n.includes('chalk river') || n.includes('isidore') || n.includes('vars') || n.includes('carlsbad') || n.includes('antrim') || n.includes('hawthorne') || n.includes('hwy') || n.includes('russell') || n.includes('prescott') || n.includes('laurier'); });
                 if (sortBy === 'urgency') d.sort((a, b) => Math.min(...Object.values(a.latestData).filter(p => p.volume !== null).map(p => p.volume/p.capacity)) - Math.min(...Object.values(b.latestData).filter(p => p.volume !== null).map(p => p.volume/p.capacity)));
                 else if (sortBy === 'name') d.sort((a, b) => a.name.localeCompare(b.name));
                 else d.sort((a, b) => a.po.localeCompare(b.po));
@@ -705,13 +710,13 @@
 
             return (<div>
                 <div className="dips-summary">
-                    <div className="dips-summary-card alert"><div className="dips-summary-value">{stats.critical}</div><div className="dips-summary-label">🔴 Needs Fuel (&lt;25%)</div></div>
-                    <div className="dips-summary-card warning"><div className="dips-summary-value">{stats.warning}</div><div className="dips-summary-label">🟡 Getting Low (25-40%)</div></div>
-                    <div className="dips-summary-card ok"><div className="dips-summary-value">{stats.ok}</div><div className="dips-summary-label">🟢 Good Level (&gt;40%)</div></div>
+                    <div className={'dips-summary-card alert'+(filter==='critical'?' active':'')} onClick={() => setFilter(filter==='critical'?'all':'critical')} style={{cursor:'pointer'}}><div className="dips-summary-value">{stats.critical}</div><div className="dips-summary-label">🔴 Needs Fuel (&lt;25%)</div></div>
+                    <div className={'dips-summary-card warning'+(filter==='warning'?' active':'')} onClick={() => setFilter(filter==='warning'?'all':'warning')} style={{cursor:'pointer'}}><div className="dips-summary-value">{stats.warning}</div><div className="dips-summary-label">🟡 Getting Low (25-40%)</div></div>
+                    <div className={'dips-summary-card ok'+(filter==='ok'?' active':'')} onClick={() => setFilter(filter==='ok'?'all':'ok')} style={{cursor:'pointer'}}><div className="dips-summary-value">{stats.ok}</div><div className="dips-summary-label">🟢 Good Level (&gt;40%)</div></div>
                 </div>
                 <div className="dips-toolbar">
                     <input className="dips-search" placeholder="🔍 Search station or PO#..." value={search} onChange={e => setSearch(e.target.value)} />
-                    {[['all','All'],['needs-fuel','⚠️ Needs Fuel'],['reg','Regular'],['diesel','Diesel'],['super','Super/Prem']].map(([k,l]) => (
+                    {[['all','All'],['qc','🏔️ Québec'],['on','🍁 Ontario'],['critical','🔴 Needs Fuel'],['warning','🟡 Getting Low']].map(([k,l]) => (
                         <button key={k} className={`dips-filter-btn ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>{l}</button>
                     ))}
                     <select className="dips-filter-btn" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{minWidth:110}}><option value="urgency">Sort: Urgency</option><option value="name">Sort: Name</option><option value="po">Sort: PO#</option></select>
@@ -860,6 +865,8 @@
             });
             const [dipsLoading, setDipsLoading] = useState(false);
             const [refreshStatus, setRefreshStatus] = useState(null);
+            const [editableEmail, setEditableEmail] = useState('');
+            const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
             const [dipsTabName, setDipsTabName] = useState(() => {
                 // Auto-generate current week's tab name
                 const now = new Date();
@@ -1022,18 +1029,22 @@
             };
 
             const getProductType = (product) => {
-                if (['Reg Gas', 'ETHANOL', 'CBOB'].includes(product)) return 'regular';
-                if (['Super Gas'].includes(product)) return 'super';
-                if (['Clear Diesel', 'Dyed Diesel'].includes(product)) return 'diesel';
-                if (['Furnace Oil', 'Stove Oil'].includes(product)) return 'furnace';
+                if (product === 'Reg Gas') return 'regular';
+                if (product === 'ETHANOL') return 'ethanol';
+                if (product === 'CBOB') return 'cbob';
+                if (product === 'Super Gas') return 'super';
+                if (product === 'Clear Diesel') return 'diesel';
+                if (product === 'Dyed Diesel') return 'dyed';
+                if (product === 'Furnace Oil' || product === 'Stove Oil') return 'furnace';
                 return 'other';
             };
 
             const matchProductToTank = (type, tankName) => {
                 const n = tankName.toLowerCase();
-                if (type === 'regular') return n.includes('reg');
+                if (type === 'regular' || type === 'ethanol' || type === 'cbob') return n.includes('reg');
                 if (type === 'super') return n.includes('super') || n.includes('premium') || n.includes('supreme');
-                if (type === 'diesel') return n.includes('diesel');
+                if (type === 'diesel') return n.includes('diesel') && !n.includes('dyed');
+                if (type === 'dyed') return n.includes('dyed') || n.includes('diesel');
                 if (type === 'furnace') return n.includes('furnace') || n.includes('stove');
                 return false;
             };
@@ -1075,9 +1086,20 @@
                 return email + 'Thank you';
             };
 
-            const copyEmail = () => { navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
-            const sendToDriver = () => { const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
+            const copyEmail = () => { navigator.clipboard.writeText(editableEmail || generateEmail()); alert('✅ Email copied!'); };
+            const sendToDriver = () => { const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(editableEmail || generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
             const isFormComplete = driverName && truckNumber && trailerNumber && stops.some(s => s.poNumber && s.terminal);
+
+            // Sync email content when form changes
+            React.useEffect(() => {
+                if (!emailManuallyEdited) {
+                    const generated = generateEmail();
+                    if (generated) setEditableEmail(generated);
+                }
+            }, [driverName, truckNumber, trailerNumber, deliveryDate, stops, emailManuallyEdited]);
+
+            // Reset manual edit flag when key fields change
+            const resetEmailEdit = () => { setEmailManuallyEdited(false); };
             const criticalCount = useMemo(() => { let c = 0; dipsData.forEach(s => Object.values(s.latestData).forEach(p => { if (p.volume && (p.volume/p.capacity) <= 0.30) c++; })); return c; }, [dipsData]);
 
             return (<div className="app-container">
@@ -1283,7 +1305,8 @@
                             <div className="card-header"><div className="card-icon">✉️</div><h2 className="card-title">Email Preview</h2></div>
                             <div className="card-body">
                                 {isFormComplete ? (<>
-                                    <div className="email-content">{generateEmail()}</div>
+                                    <textarea className="email-content" style={{width:'100%',minHeight:'200px',border:'1px solid #E2E8F0',borderRadius:'6px',padding:'0.5rem',fontSize:'0.6875rem',fontFamily:'monospace',lineHeight:1.5,resize:'vertical',background:'#FAFBFC'}} value={editableEmail} onChange={e => { setEditableEmail(e.target.value); setEmailManuallyEdited(true); }} />
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.25rem'}}><span style={{fontSize:'0.5625rem',color:'var(--text-tertiary)'}}>{'✏️ Edit email below — changes are preserved'}</span>{emailManuallyEdited && <button className="btn btn-secondary" style={{fontSize:'0.5rem',padding:'0.15rem 0.4rem'}} onClick={() => { setEmailManuallyEdited(false); setEditableEmail(generateEmail()); }}>{'↺ Reset to auto'}</button>}</div>
                                     <div className="btn-group">
                                         <button className="btn btn-success" onClick={copyEmail}>📋 Copy</button>
                                         <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email</button>
