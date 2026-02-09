@@ -965,14 +965,8 @@
                     const c = nc[compIndex];
                     if (!c.enabled) {
                         c.enabled = true;
-                        if (!c.product && availableProducts.length > 0) c.product = availableProducts[0];
-                        if (c.product) {
-                            const isLocal = stop.terminal && LOCAL_TERMINALS.includes(stop.terminal);
-                            const tc = isLocal ? LOCAL_TRAILERS : TRAILERS;
-                            c.maxVolume = tc[trailerNumber]?.products[c.product]?.[compIndex] || 0;
-                            c.volume = c.maxVolume;
-                        }
-                    } else { c.enabled = false; c.volume = 0; }
+                        // Don't auto-select product - let user choose
+                    } else { c.enabled = false; c.product = ''; c.volume = 0; c.maxVolume = 0; c.assignedTank = ''; }
                     return { ...stop, compartments: nc };
                 }));
             };
@@ -1028,8 +1022,11 @@
             // Calculate loaded products per stop (for dips overlay)
             const getLoadedProductsForStop = (stop) => {
                 const loaded = {};
+                const overlayProducts = ['Reg Gas', 'Super Gas', 'Clear Diesel', 'Dyed Diesel', 'Furnace Oil', 'Stove Oil'];
                 stop.compartments.forEach((c) => {
                     if (!c.enabled || !c.volume || !c.assignedTank) return;
+                    // Only show overlay for products that match their tank type
+                    if (!overlayProducts.includes(c.product)) return;
                     // Use lowercase key for case-insensitive matching
                     const key = c.assignedTank.toLowerCase();
                     loaded[key] = (loaded[key] || 0) + c.volume;
@@ -1222,7 +1219,8 @@
                                                             {isUsedElsewhere && !comp.enabled && <span style={{display:'block',fontSize:'0.5rem',color:'#DC2626',fontWeight:700}}>Stop {usedInStop}</span>}
                                                         </div>
                                                         {comp.enabled && (<div onClick={e => e.stopPropagation()}>
-                                                            <div className="compartment-product"><select className="compartment-product-select" value={comp.product} onChange={e => updateCompartmentProduct(stop.id, ci, e.target.value)}>
+                                                            <div className="compartment-product"><select className="compartment-product-select" value={comp.product} onChange={e => updateCompartmentProduct(stop.id, ci, e.target.value)} style={!comp.product ? {color:'#94A3B8'} : {}}>
+                                                                <option value="" disabled>Select Product...</option>
                                                                 {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
                                                             </select></div>
                                                             <div className="compartment-volume"><input type="number" className={`compartment-volume-input ${isOverStandard ? 'over-standard' : ''}`} value={comp.volume} onChange={e => updateCompartmentVolume(stop.id, ci, e.target.value)} max={canExceed ? gasMax : comp.maxVolume} /></div>
