@@ -690,12 +690,16 @@
 
             const processedDips = useMemo(() => {
                 let d = data.filter(s => Object.keys(s.latestData).length > 0);
+                // Deduplicate by PO# (keep last occurrence which has latest data)
+                const seen = new Map();
+                d.forEach(s => { if (s.po) seen.set(s.po, s); else seen.set(s.name, s); });
+                d = Array.from(seen.values());
                 if (search) { const q = search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q) || s.po.toLowerCase().includes(q)); }
                 if (filter === 'critical') d = d.filter(s => Object.values(s.latestData).some(p => p.volume !== null && p.capacity > 0 && (p.volume / p.capacity) < 0.25));
                 else if (filter === 'warning') d = d.filter(s => { const pcts = Object.values(s.latestData).filter(p => p.volume !== null && p.capacity > 0).map(p => p.volume/p.capacity); const minPct = Math.min(...pcts); return minPct >= 0.25 && minPct < 0.40; });
                 else if (filter === 'ok') d = d.filter(s => { const pcts = Object.values(s.latestData).filter(p => p.volume !== null && p.capacity > 0).map(p => p.volume/p.capacity); return pcts.length > 0 && Math.min(...pcts) >= 0.40; });
-                else if (filter === 'qc') d = d.filter(s => { const n = (s.name || '').toLowerCase(); return n.includes('gat') || n.includes('québec') || n.includes('quebec') || n.includes('hull') || n.includes('aylmer') || n.includes('lorrain') || n.includes('vérendrye') || n.includes('gréber') || n.includes('boul') || n.includes('blvd') || n.includes('chem.') || n.includes('kipawa') || n.includes('témiscaming') || n.includes('vaudreuil') || n.includes('bryson') || n.includes('ave -') || (s.po && s.po.startsWith('5')); });
-                else if (filter === 'on') d = d.filter(s => { const n = (s.name || '').toLowerCase(); return n.includes('ottawa') || n.includes('ont.') || n.includes('ontario') || n.includes('pembroke') || n.includes('arnprior') || n.includes('hawkesbury') || n.includes('rockland') || n.includes('orleans') || n.includes('morrisburg') || n.includes('chalk river') || n.includes('isidore') || n.includes('vars') || n.includes('carlsbad') || n.includes('antrim') || n.includes('hawthorne') || n.includes('hwy') || n.includes('russell') || n.includes('prescott') || n.includes('laurier'); });
+                else if (filter === 'qc') d = d.filter(s => { const n = (s.name || '').toLowerCase(); return n.includes('gat') || n.includes('québec') || n.includes('quebec') || n.includes('hull') || n.includes('aylmer') || n.includes('ayl.') || n.includes('lorrain') || n.includes('vérendrye') || n.includes('gréber') || n.includes('grives') || n.includes('chem.') || n.includes('kipawa') || n.includes('témiscaming') || n.includes('vaudreuil') || n.includes('bryson') || n.includes('ave -') || (s.po && s.po.startsWith('5')); });
+                else if (filter === 'on') d = d.filter(s => { const n = (s.name || '').toLowerCase(); return n.includes('ottawa') || n.includes('ont.') || n.includes('ontario') || n.includes('pembroke') || n.includes('arnprior') || n.includes('madawaska') || n.includes('hawkesbury') || n.includes('rockland') || n.includes('orleans') || n.includes('joseph') || n.includes('morrisburg') || n.includes('chalk river') || n.includes('isidore') || n.includes('vars') || n.includes('carlsbad') || n.includes('antrim') || n.includes('hawthorne') || n.includes('hwy') || n.includes('russell') || n.includes('prescott') || n.includes('laurier'); });
                 if (sortBy === 'urgency') d.sort((a, b) => Math.min(...Object.values(a.latestData).filter(p => p.volume !== null).map(p => p.volume/p.capacity)) - Math.min(...Object.values(b.latestData).filter(p => p.volume !== null).map(p => p.volume/p.capacity)));
                 else if (sortBy === 'name') d.sort((a, b) => a.name.localeCompare(b.name));
                 else d.sort((a, b) => a.po.localeCompare(b.po));
@@ -1086,8 +1090,8 @@
                 return email + 'Thank you';
             };
 
-            const copyEmail = () => { navigator.clipboard.writeText(editableEmail || generateEmail()); alert('✅ Email copied!'); };
-            const sendToDriver = () => { const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(editableEmail || generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
+            const copyEmail = () => { navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
+            const sendToDriver = () => { const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
             const isFormComplete = driverName && truckNumber && trailerNumber && stops.some(s => s.poNumber && s.terminal);
 
             // Sync email content when form changes
@@ -1305,8 +1309,8 @@
                             <div className="card-header"><div className="card-icon">✉️</div><h2 className="card-title">Email Preview</h2></div>
                             <div className="card-body">
                                 {isFormComplete ? (<>
-                                    <textarea className="email-content" style={{width:'100%',minHeight:'200px',border:'1px solid #E2E8F0',borderRadius:'6px',padding:'0.5rem',fontSize:'0.6875rem',fontFamily:'monospace',lineHeight:1.5,resize:'vertical',background:'#FAFBFC'}} value={editableEmail} onChange={e => { setEditableEmail(e.target.value); setEmailManuallyEdited(true); }} />
-                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.25rem'}}><span style={{fontSize:'0.5625rem',color:'var(--text-tertiary)'}}>{'✏️ Edit email below — changes are preserved'}</span>{emailManuallyEdited && <button className="btn btn-secondary" style={{fontSize:'0.5rem',padding:'0.15rem 0.4rem'}} onClick={() => { setEmailManuallyEdited(false); setEditableEmail(generateEmail()); }}>{'↺ Reset to auto'}</button>}</div>
+                                    <div className="email-content">{generateEmail()}</div>
+                                    
                                     <div className="btn-group">
                                         <button className="btn btn-success" onClick={copyEmail}>📋 Copy</button>
                                         <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email</button>
