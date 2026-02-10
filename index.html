@@ -705,6 +705,7 @@
 
         // Find dips data for a PO number
         const findDipsForPO = (poNum) => DIPS_DATA.find(d => d.po === poNum);
+        const formatPOLabel = (po) => po ? (po.startsWith('UPT') ? po : 'PO# ' + po) : '';
 
         // ==================== DIPS DASHBOARD ====================
         function DipsDashboard({ dipsData }) {
@@ -753,7 +754,7 @@
                 </div>
                 <div className="dips-grid" key={'grid-'+filter+'-'+sortBy+'-'+search}>
                     {processedDips.map((s, idx) => (<div key={s.po + '-' + idx} className="dip-card">
-                        <div className="dip-card-header"><div className="dip-station-name">{s.name || `PO# ${s.po}`}</div><div className="dip-po-badge">PO# {s.po}</div></div>
+                        <div className="dip-card-header"><div className="dip-station-name">{s.name || formatPOLabel(s.po)}</div><div className="dip-po-badge">{formatPOLabel(s.po)}</div></div>
                         <div className="dip-card-body">
                             {Object.entries(s.latestData).map(([pn, d]) => { if (!d.volume) return null; const pct = (d.volume/d.capacity)*100; const c = getFillColor(pct); const uc = getUllageClass(d.ullage, d.capacity); return (
                                 <div key={pn} className="dip-product-row">
@@ -773,10 +774,10 @@
         // ==================== INLINE DIP CARD (under PO selection) ====================
         function InlineDipCard({ poNumber, loadedProducts }) {
             const dip = findDipsForPO(poNumber);
-            if (!dip) return <div style={{fontSize:'0.625rem',color:'var(--text-tertiary)',padding:'0.375rem 0',fontStyle:'italic'}}>No dip data for PO# {poNumber}</div>;
+            if (!dip) return <div style={{fontSize:'0.625rem',color:'var(--text-tertiary)',padding:'0.375rem 0',fontStyle:'italic'}}>No dip data for {formatPOLabel(poNumber)}</div>;
 
             return (<div className="dip-inline">
-                <div className="dip-inline-title">{'⛽ Tank Levels — '+(dip.name || ('PO# '+dip.po))}</div>
+                <div className="dip-inline-title">{'⛽ Tank Levels — '+(dip.name || formatPOLabel(dip.po))}</div>
                 {Object.entries(dip.latestData).map(([pn, d]) => {
                     if (!d.volume && d.volume !== 0) return null;
                     const fillPct = d.capacity > 0 ? (d.volume / d.capacity) * 100 : 0;
@@ -861,7 +862,7 @@
                 doc.setTextColor(15,23,42); doc.setFontSize(8); doc.setFont('helvetica','normal');
                 [`Address: ${poData.address}`,`Terminal: ${stop.terminal}`,`Customer: ${td.customer}`,
                 td.account ? `${stop.terminal.includes('IOL')?'Destination':'Account'}: ${td.account}` : null,
-                `PO #: ${stop.poNumber}`,`Products: ${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('  |  ')}`,
+                `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}`,`Products: ${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('  |  ')}`,
                 stop.pbNumber ? `PB: ${stop.pbNumber}` : null, stop.lvNumber ? `LV: ${stop.lvNumber}` : null
                 ].filter(Boolean).forEach(l => { doc.text(l, m+4, y); y += 4.5; });
                 y += 2;
@@ -1090,7 +1091,7 @@
                     const td = poData.terminals[stop.terminal]; if (!td) return;
                     email += `${poData.name}: ${poData.address}\nTerminal: ${stop.terminal}\nCustomer: ${td.customer}\n`;
                     if (td.account) email += `${stop.terminal.includes('IOL')?'Destination':'Account'}: ${td.account}\n`;
-                    email += `PO #: ${stop.poNumber}\n${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('    ')}\n`;
+                    email += `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}\n${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('    ')}\n`;
                     if (stop.pbNumber) email += `PB${stop.pbNumber}\n`;
                     if (stop.lvNumber) email += `LV${stop.lvNumber}\n`;
                     stop.compartments.forEach((c,i) => { 
@@ -1203,10 +1204,10 @@
                                             {stops.length > 1 && <button className="stop-remove" onClick={() => removeStop(stop.id)}>✕</button>}
                                         </div>
                                         <div className="form-grid">
-                                            <div className="form-group form-group-full"><label className="form-label form-label-required">PO Number</label>
+                                            <div className="form-group form-group-full"><label className="form-label form-label-required">{stop.poNumber && stop.poNumber.startsWith('UPT') ? 'Station (UPT)' : 'PO Number'}</label>
                                                 <select className="form-select" value={stop.poNumber} onChange={e => updateStop(stop.id, 'poNumber', e.target.value)}>
                                                     <option value="">Select PO...</option>
-                                                    {Object.keys(PO_DATA).map(po => <option key={po} value={po}>{po} - {PO_DATA[po].name}</option>)}
+                                                    {Object.keys(PO_DATA).map(po => <option key={po} value={po}>{(po.startsWith('UPT') ? '' : po + ' - ')}{PO_DATA[po].name}</option>)}
                                                 </select>
                                             </div>
                                             {stop.poNumber && (<>
