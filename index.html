@@ -404,22 +404,26 @@
                     for (let back = 1; back <= 3; back++) {
                         const prev = lines[i - back];
                         if (!prev) continue;
-                        const hasProductName = [2, 4, 6, 8, 10, 12].some(c => {
+                        const hasProductName = [2, 4, 6, 8].some(c => {
                             const v = (prev[c] || '').trim();
-                            return v && /reg|diesel|super|premium|supreme|furnace|stove|dyed/i.test(v);
+                            return v && v.length < 30 && /reg|diesel|super|premium|supreme|furnace|stove|dyed/i.test(v);
                         });
                         if (hasProductName) { nameRow = prev; break; }
                     }
 
                     productCols = [];
-                    // Products are in columns C(2), E(4), G(6), I(8), K(10), M(12)
+                    // Products are in columns C(2), E(4), G(6), I(8)
                     // Capacities are in the same columns on the Date row
-                    // Ullage columns are D(3), F(5), H(7), J(9), L(11), N(13)
-                    for (const col of [2, 4, 6, 8, 10, 12]) {
+                    // Ullage columns are D(3), F(5), H(7), J(9)
+                    // NOTE: Columns 10+ typically contain notes/instructions, not products
+                    for (const col of [2, 4, 6, 8]) {
                         const pName = nameRow ? (nameRow[col] || '').trim() : '';
                         const capRaw = (row[col] || '').trim();
                         const cap = parseNum(capRaw);
-                        if (pName && cap > 0) {
+                        // Additional validation: product name should be short and contain fuel-related terms
+                        const isValidProduct = pName && pName.length < 30 && 
+                            /reg|diesel|super|premium|supreme|furnace|stove|dyed/i.test(pName);
+                        if (isValidProduct && cap > 0) {
                             productCols.push({ name: pName, capacity: cap, colVol: col, colUll: col + 1 });
                             currentStation.products.push({ name: pName, capacity: cap });
                         }
@@ -562,9 +566,10 @@
                         if (!prevCells) continue;
                         // Check if this row has product names in the expected columns
                         let hasNames = false;
-                        for (const col of [2, 4, 6, 8, 10, 12]) {
+                        for (const col of [2, 4, 6, 8]) {
                             const v = getStr(prevCells, col);
-                            if (v && v.match(/reg|diesel|super|premium|supreme|furnace|stove|dyed/i)) {
+                            // Additional validation: must be short and match fuel terms
+                            if (v && v.length < 30 && v.match(/reg|diesel|super|premium|supreme|furnace|stove|dyed/i)) {
                                 hasNames = true;
                                 break;
                             }
@@ -573,13 +578,16 @@
                     }
 
                     productCols = [];
-                    // Product columns are at indices 2,4,6,8,10,12 (C,E,G,I,K,M)
+                    // Product columns are at indices 2,4,6,8 (C,E,G,I) - NOT 10,12 which are typically notes
                     // Capacities are in the Date row at the same columns
-                    // Ullage columns are at 3,5,7,9,11,13 (D,F,H,J,L,N)
-                    for (const col of [2, 4, 6, 8, 10, 12]) {
+                    // Ullage columns are at 3,5,7,9 (D,F,H,J)
+                    for (const col of [2, 4, 6, 8]) {
                         const pName = nameRow ? getStr(nameRow, col) : '';
                         const cap = getNum(cells, col);
-                        if (pName && cap && cap > 0) {
+                        // Additional validation: product name should be short and contain fuel-related terms
+                        const isValidProduct = pName && pName.length < 30 && 
+                            /reg|diesel|super|premium|supreme|furnace|stove|dyed/i.test(pName);
+                        if (isValidProduct && cap && cap > 0) {
                             const cleanName = pName.trim();
                             productCols.push({
                                 name: cleanName,
