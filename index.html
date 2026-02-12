@@ -956,7 +956,14 @@
             const [driverName, setDriverName] = useState('');
             const [truckNumber, setTruckNumber] = useState('');
             const [trailerNumber, setTrailerNumber] = useState('');
-            const [deliveryDate, setDeliveryDate] = useState(() => { const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().split('T')[0]; });
+            const [deliveryDate, setDeliveryDate] = useState(() => {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Toronto',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
+});
             const [stops, setStops] = useState([createEmptyStop()]);
             const [liveDips, setLiveDips] = useState(() => {
                 try {
