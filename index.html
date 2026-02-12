@@ -344,6 +344,7 @@
             let currentStation = null;
             let productCols = []; // {name, capacity, colVol, colUll}
             let hasCapRow = false;
+            let stationHeaderRow = -1; // Track which row the current station started
 
             for (let i = 0; i < lines.length; i++) {
                 const row = lines[i];
@@ -356,7 +357,19 @@
                 // Station header: B contains AM and PM
                 if (colBup.includes('AM') && colBup.includes('PM') && colB.length < 25) {
                     if (currentStation && Object.keys(currentStation.latestData).length > 0) {
-                        stations.push(currentStation);
+                        // Validate: all tanks must have reasonable capacity (>= 1000L, <= 200000L)
+                        const validData = {};
+                        for (const [key, val] of Object.entries(currentStation.latestData)) {
+                            if (val.capacity >= 1000 && val.capacity <= 200000) {
+                                validData[key] = val;
+                            } else {
+                                console.log(`    Skipping invalid tank "${key}" with capacity ${val.capacity} for station ${currentStation.po}`);
+                            }
+                        }
+                        if (Object.keys(validData).length > 0) {
+                            currentStation.latestData = validData;
+                            stations.push(currentStation);
+                        }
                     }
                     // Extract PO from columns C, D (indices 2, 3)
                     let po = '';
@@ -393,12 +406,15 @@
                     currentStation = { po, name, products: [], latestDay: '', latestData: {} };
                     productCols = [];
                     hasCapRow = false;
-                    console.log(`  Found station: "${name}" PO=${po}`);
+                    stationHeaderRow = i;
+                    console.log(`  Found station: "${name}" PO=${po} at row ${i}`);
                     continue;
                 }
 
                 // Date/capacity row: B = "Date"
-                if (colBup === 'DATE' && currentStation) {
+                // Must be within reasonable distance from station header (within 10 rows)
+                // AND we must not already have processed a capacity row for this station
+                if (colBup === 'DATE' && currentStation && (i - stationHeaderRow) <= 10 && !hasCapRow) {
                     // Look 1-2 rows back for product names in C(2), E(4), G(6), I(8)
                     let nameRow = null;
                     for (let back = 1; back <= 3; back++) {
@@ -419,7 +435,8 @@
                         const pName = nameRow ? (nameRow[col] || '').trim() : '';
                         const capRaw = (row[col] || '').trim();
                         const cap = parseNum(capRaw);
-                        if (pName && cap > 0) {
+                        // Validate capacity: must be >= 1000L (no fuel tank is 1L) and <= 200000L
+                        if (pName && cap >= 1000 && cap <= 200000) {
                             productCols.push({ name: pName, capacity: cap, colVol: col, colUll: col + 1 });
                             currentStation.products.push({ name: pName, capacity: cap });
                         }
@@ -441,7 +458,8 @@
                         const ullRaw = (row[pc.colUll] || '').trim();
                         const vol = parseNum(volRaw);
                         const ull = parseNum(ullRaw);
-                        if (vol > 0 && !isNaN(vol)) {
+                        // Validate that volume is reasonable (< capacity * 1.1 to allow for small measurement errors)
+                        if (vol > 0 && !isNaN(vol) && vol <= pc.capacity * 1.1) {
                             currentStation.latestData[pc.name] = {
                                 volume: Math.round(vol),
                                 ullage: Math.round(!isNaN(ull) && ull > 0 ? ull : (pc.capacity - vol)),
@@ -452,9 +470,19 @@
                     }
                 }
             }
-            // Don't forget last station
+            // Don't forget last station (with validation)
             if (currentStation && Object.keys(currentStation.latestData).length > 0) {
-                stations.push(currentStation);
+                // Validate: all tanks must have reasonable capacity
+                const validData = {};
+                for (const [key, val] of Object.entries(currentStation.latestData)) {
+                    if (val.capacity >= 1000 && val.capacity <= 200000) {
+                        validData[key] = val;
+                    }
+                }
+                if (Object.keys(validData).length > 0) {
+                    currentStation.latestData = validData;
+                    stations.push(currentStation);
+                }
             }
             console.log(`✅ CSV parser: found ${stations.length} stations with data`);
             return stations;
@@ -472,6 +500,7 @@
             let currentStation = null;
             let productCols = [];
             let hasCapacityRow = false;
+            let stationHeaderRow = -1; // Track which row the current station started
 
             const getVal = (cells, idx) => cells?.[idx]?.v;
             const getStr = (cells, idx) => {
@@ -514,9 +543,21 @@
                 // Could be: AM\PM, AM\\PM, AM/PM, AM PM, etc.
                 const isStationHeader = colBupper.includes('AM') && colBupper.includes('PM') && colB.length < 20;
                 if (isStationHeader) {
-                    // Save previous station
+                    // Save previous station (with validation)
                     if (currentStation && Object.keys(currentStation.latestData).length > 0) {
-                        stations.push(currentStation);
+                        // Validate: all tanks must have reasonable capacity (> 100L, < 500000L)
+                        const validData = {};
+                        for (const [key, val] of Object.entries(currentStation.latestData)) {
+                            if (val.capacity >= 1000 && val.capacity <= 200000) {
+                                validData[key] = val;
+                            } else {
+                                console.log(`    Skipping invalid tank "${key}" with capacity ${val.capacity} for station ${currentStation.po}`);
+                            }
+                        }
+                        if (Object.keys(validData).length > 0) {
+                            currentStation.latestData = validData;
+                            stations.push(currentStation);
+                        }
                     }
 
                     // Extract PO from column C or nearby
@@ -549,11 +590,15 @@
                     currentStation = { po, name, products: [], latestDay: '', latestData: {} };
                     productCols = [];
                     hasCapacityRow = false;
+                    stationHeaderRow = i;
+                    console.log(`Found station header at row ${i}: "${name}" PO=${po}`);
                     continue;
                 }
 
                 // Detect "Date" row (capacity row)
-                if (colB === 'Date' && currentStation) {
+                // Must be within reasonable distance from station header (within 10 rows)
+                // AND we must not already have processed a capacity row for this station
+                if (colB === 'Date' && currentStation && (i - stationHeaderRow) <= 10 && !hasCapacityRow) {
                     // Look at the row ABOVE for product names (cols C=2, E=4, G=6, I=8)
                     // And sometimes 2 rows above
                     let nameRow = null;
@@ -579,7 +624,8 @@
                     for (const col of [2, 4, 6, 8, 10, 12]) {
                         const pName = nameRow ? getStr(nameRow, col) : '';
                         const cap = getNum(cells, col);
-                        if (pName && cap && cap > 0) {
+                        // Validate capacity: must be >= 1000L (no fuel tank is 1L) and <= 200000L
+                        if (pName && cap && cap >= 1000 && cap <= 200000) {
                             const cleanName = pName.trim();
                             productCols.push({
                                 name: cleanName,
@@ -592,12 +638,12 @@
                     }
                     hasCapacityRow = productCols.length > 0;
                     if (hasCapacityRow) {
-                        console.log(`  Station "${currentStation.name}" (PO ${currentStation.po}): ${productCols.length} products found: ${productCols.map(p=>p.name).join(', ')}`);
+                        console.log(`  Station "${currentStation.name}" (PO ${currentStation.po}): ${productCols.length} products found: ${productCols.map(p=>p.name + '(' + p.capacity + 'L)').join(', ')}`);
                     }
                     continue;
                 }
 
-                // Day data rows
+                // Day data rows - must be within reasonable distance from Date row
                 const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
                 if (hasCapacityRow && currentStation && dayNames.includes(colB.toUpperCase())) {
                     const day = colB.toUpperCase();
@@ -605,7 +651,8 @@
                         const vol = getNum(cells, pc.colVol);
                         const ull = getNum(cells, pc.colUll);
                         // Only update if we have actual volume data (not just ullage = capacity)
-                        if (vol !== null && vol > 0) {
+                        // Also validate that volume is reasonable (< capacity * 1.1 to allow for small measurement errors)
+                        if (vol !== null && vol > 0 && vol <= pc.capacity * 1.1) {
                             currentStation.latestData[pc.name] = {
                                 volume: Math.round(vol),
                                 ullage: Math.round(ull !== null ? ull : (pc.capacity - vol)),
@@ -616,9 +663,19 @@
                     }
                 }
             }
-            // Don't forget last station
+            // Don't forget last station (with validation)
             if (currentStation && Object.keys(currentStation.latestData).length > 0) {
-                stations.push(currentStation);
+                // Validate: all tanks must have reasonable capacity
+                const validData = {};
+                for (const [key, val] of Object.entries(currentStation.latestData)) {
+                    if (val.capacity >= 1000 && val.capacity <= 200000) {
+                        validData[key] = val;
+                    }
+                }
+                if (Object.keys(validData).length > 0) {
+                    currentStation.latestData = validData;
+                    stations.push(currentStation);
+                }
             }
             console.log(`Parsed ${stations.length} stations with data`);
             return stations;
@@ -874,7 +931,7 @@
                 doc.text(`Stop ${si+1}: ${poData.name}`, m+4, y+6); y += 12;
                 doc.setTextColor(15,23,42); doc.setFontSize(8); doc.setFont('helvetica','normal');
                 [`Address: ${poData.address}`,`Terminal: ${stop.terminal}`,`Customer: ${td.customer}`,
-                td.account ? `${stop.terminal.includes('IOL')?'Destination':'Account'}: ${td.account}` : null,
+                td.destination ? `Destination: ${td.destination}` : (td.account ? `Account: ${td.account}` : null),
                 `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}`,`Products: ${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('  |  ')}`,
                 stop.pbNumber ? `PB: ${stop.pbNumber}` : null, stop.lvNumber ? `LV: ${stop.lvNumber}` : null
                 ].filter(Boolean).forEach(l => { doc.text(l, m+4, y); y += 4.5; });
@@ -904,8 +961,26 @@
             const [liveDips, setLiveDips] = useState(() => {
                 try {
                     const cached = localStorage.getItem('schooner_dips_cache');
-                    if (cached) { const p = JSON.parse(cached); if (p && p.length > 0) { const m = mergeDipsData(p); DIPS_DATA = m; return m; } }
-                } catch(e) {}
+                    const cacheTime = localStorage.getItem('schooner_dips_time');
+                    if (cached && cacheTime) {
+                        // Check if cache is older than 12 hours
+                        const cacheAge = Date.now() - new Date(cacheTime).getTime();
+                        const maxAge = 12 * 60 * 60 * 1000; // 12 hours in ms
+                        if (cacheAge < maxAge) {
+                            const p = JSON.parse(cached);
+                            if (p && p.length > 0) {
+                                const m = mergeDipsData(p);
+                                DIPS_DATA = m;
+                                console.log(`Loaded ${p.length} stations from cache (${Math.round(cacheAge / 3600000)}h old)`);
+                                return m;
+                            }
+                        } else {
+                            console.log(`Cache expired (${Math.round(cacheAge / 3600000)}h old), using built-in data`);
+                            localStorage.removeItem('schooner_dips_cache');
+                            localStorage.removeItem('schooner_dips_time');
+                        }
+                    }
+                } catch(e) { console.error('Cache load error:', e); }
                 return null;
             });
             const [dipsLoading, setDipsLoading] = useState(false);
@@ -1104,7 +1179,8 @@
                     const poData = PO_DATA[stop.poNumber]; if (!poData) return;
                     const td = poData.terminals[stop.terminal]; if (!td) return;
                     email += `${poData.name}: ${poData.address}\nTerminal: ${stop.terminal}\nCustomer: ${td.customer}\n`;
-                    if (td.account) email += `${stop.terminal.includes('IOL')?'Destination':'Account'}: ${td.account}\n`;
+                    if (td.destination) email += `Destination: ${td.destination}\n`;
+                    else if (td.account) email += `Account: ${td.account}\n`;
                     email += `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}\n${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('    ')}\n`;
                     if (stop.pbNumber) email += `PB${stop.pbNumber}\n`;
                     if (stop.lvNumber) email += `LV${stop.lvNumber}\n`;
