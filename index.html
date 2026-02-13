@@ -1230,7 +1230,14 @@
 
             // Reset manual edit flag when key fields change
             const resetEmailEdit = () => { setEmailManuallyEdited(false); };
-            const criticalCount = useMemo(() => { let c = 0; dipsData.forEach(s => Object.values(s.latestData).forEach(p => { if (p.volume && (p.volume/p.capacity) <= 0.30) c++; })); return c; }, [dipsData]);
+            const criticalCount = useMemo(() => { 
+    const sites = new Set(); 
+    dipsData.forEach(s => {
+        const hasCritical = Object.values(s.latestData).some(p => p.volume && (p.volume/p.capacity) <= 0.30);
+        if (hasCritical) sites.add(s.station);
+    }); 
+    return sites.size; 
+}, [dipsData]);
 
             return (<div className="app-container">
                 <header className="header"><div className="header-content">
