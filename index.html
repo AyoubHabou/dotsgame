@@ -805,32 +805,11 @@
             };
             const processedDips = getFilteredDips();
 
-           const stats = useMemo(() => {
-    const criticalSites = new Set();
-    const warningSites = new Set();
-    const okSites = new Set();
-    
-    data.forEach(s => {
-        let hasCritical = false;
-        let hasWarning = false;
-        let hasOk = false;
-        
-        Object.values(s.latestData).forEach(p => {
-            if (!p.volume) return;
-            const pct = p.volume/p.capacity;
-            if (pct <= 0.25) hasCritical = true;
-            else if (pct <= 0.40) hasWarning = true;
-            else hasOk = true;
-        });
-        
-        // Prioritize worst status
-        if (hasCritical) criticalSites.add(s.station);
-        else if (hasWarning) warningSites.add(s.station);
-        else if (hasOk) okSites.add(s.station);
-    });
-    
-    return { critical: criticalSites.size, warning: warningSites.size, ok: okSites.size };
-}, [data]);
+            const stats = useMemo(() => {
+                let c = 0, w = 0, o = 0;
+                data.forEach(s => Object.values(s.latestData).forEach(p => { if (!p.volume) return; const pct = p.volume/p.capacity; if (pct <= 0.25) c++; else if (pct <= 0.40) w++; else o++; }));
+                return { critical: c, warning: w, ok: o };
+            }, [data]);
 
             return (<div>
                 <div className="dips-summary">
@@ -1251,14 +1230,7 @@
 
             // Reset manual edit flag when key fields change
             const resetEmailEdit = () => { setEmailManuallyEdited(false); };
-            const criticalCount = useMemo(() => { 
-    const sites = new Set(); 
-    dipsData.forEach(s => {
-        const hasCritical = Object.values(s.latestData).some(p => p.volume && (p.volume/p.capacity) <= 0.30);
-        if (hasCritical) sites.add(s.station);
-    }); 
-    return sites.size; 
-}, [dipsData]);
+            const criticalCount = useMemo(() => { let c = 0; dipsData.forEach(s => Object.values(s.latestData).forEach(p => { if (p.volume && (p.volume/p.capacity) <= 0.30) c++; })); return c; }, [dipsData]);
 
             return (<div className="app-container">
                 <header className="header"><div className="header-content">
