@@ -805,11 +805,32 @@
             };
             const processedDips = getFilteredDips();
 
-            const stats = useMemo(() => {
-                let c = 0, w = 0, o = 0;
-                data.forEach(s => Object.values(s.latestData).forEach(p => { if (!p.volume) return; const pct = p.volume/p.capacity; if (pct <= 0.25) c++; else if (pct <= 0.40) w++; else o++; }));
-                return { critical: c, warning: w, ok: o };
-            }, [data]);
+           const stats = useMemo(() => {
+    const criticalSites = new Set();
+    const warningSites = new Set();
+    const okSites = new Set();
+    
+    data.forEach(s => {
+        let hasCritical = false;
+        let hasWarning = false;
+        let hasOk = false;
+        
+        Object.values(s.latestData).forEach(p => {
+            if (!p.volume) return;
+            const pct = p.volume/p.capacity;
+            if (pct <= 0.25) hasCritical = true;
+            else if (pct <= 0.40) hasWarning = true;
+            else hasOk = true;
+        });
+        
+        // Prioritize worst status
+        if (hasCritical) criticalSites.add(s.station);
+        else if (hasWarning) warningSites.add(s.station);
+        else if (hasOk) okSites.add(s.station);
+    });
+    
+    return { critical: criticalSites.size, warning: warningSites.size, ok: okSites.size };
+}, [data]);
 
             return (<div>
                 <div className="dips-summary">
