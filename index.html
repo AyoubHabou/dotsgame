@@ -932,7 +932,7 @@
                 doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
                 doc.text(`Stop ${si+1}: ${poData.name}`, m+4, y+6); y += 12;
                 doc.setTextColor(15,23,42); doc.setFontSize(8); doc.setFont('helvetica','normal');
-                [`Address: ${poData.address}`,`Terminal: ${stop.terminal}`,`Customer: ${td.customer}`,
+                [poData.address && poData.address.replace(/[,.\s]/g,'').toLowerCase() !== poData.name.replace(/[,.\s]/g,'').toLowerCase() ? `Address: ${poData.address}` : null,`Terminal: ${stop.terminal}`,`Customer: ${td.customer}`,
                 td.destination ? `Destination: ${td.destination}` : (td.account ? `Account: ${td.account}` : null),
                 `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}`,`Products: ${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('  |  ')}`,
                 stop.pbNumber ? `PB: ${stop.pbNumber}` : null, stop.lvNumber ? `LV: ${stop.lvNumber}` : null
@@ -1187,7 +1187,9 @@
                     if (!stop.poNumber) return;
                     const poData = PO_DATA[stop.poNumber]; if (!poData) return;
                     const td = poData.terminals[stop.terminal]; if (!td) return;
-                    email += `${poData.name}: ${poData.address}\nTerminal: ${stop.terminal}\nCustomer: ${td.customer}\n`;
+                    const addrSame = poData.address && poData.address.replace(/[,.\s]/g,'').toLowerCase() === poData.name.replace(/[,.\s]/g,'').toLowerCase();
+                    email += addrSame ? `${poData.name}\n` : `${poData.name}: ${poData.address}\n`;
+                    email += `Terminal: ${stop.terminal}\nCustomer: ${td.customer}\n`;
                     if (td.destination) email += `Destination: ${td.destination}\n`;
                     else if (td.account) email += `Account: ${td.account}\n`;
                     email += `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}\n${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('    ')}\n`;
