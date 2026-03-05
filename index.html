@@ -1223,6 +1223,63 @@
 
             const copyEmail = () => { navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
             const sendToDriver = () => { const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
+            const generateHtmlTicket = () => {
+                const stopList = stops.filter(s => s.poNumber && PO_DATA[s.poNumber] && PO_DATA[s.poNumber].terminals[s.terminal]);
+                const totalVol = stops.reduce((t,s) => t + s.compartments.filter(c=>c.enabled).reduce((st,c)=>st+c.volume,0), 0);
+                let stopsHtml = '';
+                stopList.forEach((stop, si) => {
+                    const poData = PO_DATA[stop.poNumber];
+                    const td = poData.terminals[stop.terminal];
+                    let prodRows = Object.keys(td.products).map(p =>
+                        `<tr><td style="padding:6px 14px;font-size:13px;color:#1a2e1a;border-bottom:1px solid #e8efe8">${p}</td><td style="padding:6px 14px;font-size:13px;color:#1a5c2e;font-weight:700;font-family:'Courier New',monospace;border-bottom:1px solid #e8efe8">${td.products[p]}</td></tr>`
+                    ).join('');
+                    let compsHtml = '';
+                    const activeComps = stop.compartments.filter(c => c.enabled && c.volume > 0);
+                    if (activeComps.length > 0) {
+                        let compRows = activeComps.map(c => {
+                            let tankLabel = '';
+                            if (c.assignedTank && stop.poNumber) {
+                                const eDip = findDipsForPO(stop.poNumber);
+                                if (eDip) {
+                                    const eType = getProductType(c.product);
+                                    const eMatching = Object.keys(eDip.latestData).filter(k => matchProductToTank(eType, k));
+                                    if (eMatching.length > 1) {
+                                        const tankNum = eMatching.findIndex(k => k.toLowerCase() === c.assignedTank.toLowerCase()) + 1;
+                                        tankLabel = tankNum > 0 ? ` <span style="color:#6b8068">&rarr; Tank ${tankNum}</span>` : '';
+                                    }
+                                }
+                            }
+                            const ci = stop.compartments.indexOf(c);
+                            const pc = c.product === 'Reg Gas' ? '#2d7a3a' : c.product === 'Super' ? '#b8860b' : c.product === 'Diesel' ? '#2563eb' : c.product === 'Dyed Diesel' ? '#7c3aed' : '#4a5e4a';
+                            const rowBg = c.product === 'Reg Gas' ? '#f0fdf0' : c.product === 'Super Gas' ? '#fde8e8' : c.product === 'Clear Diesel' ? '#fff3e0' : '#ffffff';
+                            return `<tr><td bgcolor="${rowBg}" style="background-color:${rowBg};padding:6px 14px;font-size:13px;font-weight:700;color:#1a2e1a;border-bottom:1px solid #e8efe8">C${ci+1}</td><td bgcolor="${rowBg}" style="background-color:${rowBg};padding:6px 14px;font-size:13px;border-bottom:1px solid #e8efe8"><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:${pc}18;color:${pc};font-weight:700;font-size:12px">${c.product}</span></td><td bgcolor="${rowBg}" style="background-color:${rowBg};padding:6px 14px;font-size:14px;font-weight:800;color:#0f1f0f;border-bottom:1px solid #e8efe8">${c.volume.toLocaleString()}L${tankLabel}</td></tr>`;
+                        }).join('');
+                        compsHtml = `<div style="margin-top:14px"><table style="width:100%;border-collapse:collapse;background:#f7faf7;border-radius:6px;border:1px solid #d4e4d4"><tr style="background:#e8f0e8"><td colspan="3" style="padding:8px 14px;font-size:11px;font-weight:800;color:#2d5a2d;text-transform:uppercase;letter-spacing:1px">Loading Plan</td></tr><tr style="background:#f0f5f0"><th style="padding:5px 14px;font-size:10px;font-weight:700;color:#6b8068;text-align:left;text-transform:uppercase">Comp</th><th style="padding:5px 14px;font-size:10px;font-weight:700;color:#6b8068;text-align:left;text-transform:uppercase">Product</th><th style="padding:5px 14px;font-size:10px;font-weight:700;color:#6b8068;text-align:left;text-transform:uppercase">Volume</th></tr>${compRows}</table></div>`;
+                    }
+                    let notesHtml = '';
+                    if (td.supplier) notesHtml += `<div style="margin-top:8px;padding:7px 12px;background:#f0f5f0;border-radius:4px;font-size:12px;color:#2d5a2d"><b>Supplier:</b> ${td.supplier}</div>`;
+                    if (td.notes) notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#fff8ee;border-left:3px solid #d4a017;border-radius:0 4px 4px 0;font-size:12px;color:#7a5c00;white-space:pre-line">${td.notes}</div>`;
+                    if (stop.notes) notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#f0f7f0;border-left:3px solid #2d7a3a;border-radius:0 4px 4px 0;font-size:12px;color:#1a4a1a">&#x1F4DD; ${stop.notes}</div>`;
+                    let siteplanHtml = poData.siteplan ? `<div style="margin-top:10px"><a href="${poData.siteplan}" style="display:inline-block;padding:7px 16px;background:#f0f7f0;border:1px solid #b8d4b8;border-radius:6px;color:#1a5c2e;font-size:12px;font-weight:700;text-decoration:none">&#x1F4CE; Site Plan & Dip Chart</a></div>` : '';
+                    let extraHtml = '';
+                    if (stop.pbNumber) extraHtml += `<span style="display:inline-block;padding:3px 10px;background:#f0f5f0;border:1px solid #d4e4d4;border-radius:4px;font-size:12px;font-weight:600;color:#2d5a2d;margin-right:6px">PB: ${stop.pbNumber}</span>`;
+                    if (stop.lvNumber) extraHtml += `<span style="display:inline-block;padding:3px 10px;background:#f0f5f0;border:1px solid #d4e4d4;border-radius:4px;font-size:12px;font-weight:600;color:#2d5a2d">LV: ${stop.lvNumber}</span>`;
+                    if (extraHtml) extraHtml = `<div style="margin-top:8px">${extraHtml}</div>`;
+                    let infoRows = `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;width:95px;vertical-align:top">Terminal</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.terminal}</td></tr>`;
+                    infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Customer</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.customer}</td></tr>`;
+                    if (td.destination) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Destination</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.destination}</td></tr>`;
+                    else if (td.account) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Account</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account}</td></tr>`;
+                    infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.poNumber}</td></tr>`;
+                    stopsHtml += `<div style="margin-bottom:16px;border:1px solid #c8d8c8;border-radius:8px;overflow:hidden"><table style="width:100%;border-collapse:collapse"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:12px 16px;border-bottom:2px solid #1a3c1a"><table style="width:100%"><tr><td style="width:32px;vertical-align:middle"><div style="width:30px;height:30px;background:rgba(255,255,255,0.15);border-radius:50%;text-align:center;line-height:30px;font-weight:800;font-size:14px"><font color="#1a3c1a">${si+1}</font></div></td><td style="vertical-align:middle;padding-left:10px"><div style="font-size:15px;font-weight:700"><font color="#1a3c1a">${poData.name}</font></div></td></tr></table></td></tr></table><div style="padding:14px 16px"><table style="width:100%;border-collapse:collapse">${infoRows}</table><div style="margin-top:12px"><table style="width:100%;border-collapse:collapse;background:#f7faf7;border-radius:6px;border:1px solid #d4e4d4"><tr style="background:#e8f0e8"><td colspan="2" style="padding:8px 14px;font-size:11px;font-weight:800;color:#2d5a2d;text-transform:uppercase;letter-spacing:1px">Product Codes</td></tr>${prodRows}</table></div>${compsHtml}${extraHtml}${notesHtml}${siteplanHtml}</div></div>`;
+                });
+                return `<div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"><table style="width:100%;border-collapse:collapse"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:22px 24px;border-radius:10px 10px 0 0;text-align:center;border-bottom:3px solid #1a3c1a"><span style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px"><font color="#1a3c1a">Schooner Transport</font></span><span style="display:block;font-size:20px;font-weight:800;margin-top:4px;letter-spacing:0.3px"><font color="#1a3c1a">Delivery Plan</font></span></td></tr></table><div style="background:#fff;padding:18px 20px;border-left:1px solid #d4e4d4;border-right:1px solid #d4e4d4"><table style="width:100%;border-collapse:collapse"><tr><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:700;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Driver</div><div style="font-size:15px;font-weight:800;color:#0f1f0f;margin-top:3px">${driverName}</div></div></td><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:700;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Truck / Trailer</div><div style="font-size:15px;font-weight:800;color:#0f1f0f;margin-top:3px">${truckNumber} / ${trailerNumber}</div></div></td><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:700;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Date</div><div style="font-size:14px;font-weight:800;color:#0f1f0f;margin-top:3px">${formatDate(deliveryDate)}</div></div></td></tr></table><div style="margin-top:16px">${stopsHtml}</div><table style="width:100%;border-collapse:collapse;border-radius:8px;margin-top:8px"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;border-radius:8px;padding:14px;text-align:center;border-top:2px solid #1a3c1a"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px"><font color="#1a3c1a">Total Volume</font></div><div style="font-size:26px;font-weight:800;margin-top:2px"><font color="#1a3c1a">${totalVol.toLocaleString()}L</font></div></td></tr></table></div><div style="background:#f0f5f0;padding:14px;border-radius:0 0 10px 10px;border:1px solid #d4e4d4;border-top:none;text-align:center"><div style="font-size:12px;color:#6b8068">Thank you and drive safe.</div><div style="font-size:11px;font-weight:700;color:#1a5c2e;margin-top:2px">Schooner Transport</div></div></div>`;
+            };
+            const copyHtmlTicket = () => {
+                const html = generateHtmlTicket();
+                const blob = new Blob([html], {type: 'text/html'});
+                const item = new ClipboardItem({'text/html': blob, 'text/plain': new Blob([generateEmail()], {type: 'text/plain'})});
+                navigator.clipboard.write([item]).catch(() => { navigator.clipboard.writeText(generateEmail()); });
+            };
             const isFormComplete = driverName && truckNumber && trailerNumber && stops.some(s => s.poNumber && s.terminal);
 
             // Sync email content when form changes
@@ -1456,11 +1513,12 @@
                                     
                                     <div className="btn-group">
                                         <button className="btn btn-success" onClick={copyEmail}>📋 Copy</button>
+                                        <button className="btn btn-success" style={{background:'#166534'}} onClick={copyHtmlTicket}>🎫 Copy Ticket</button>
                                         <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email</button>
                                         <button className="btn btn-warning" onClick={() => generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops)}>📄 PDF</button>
                                         <button className="btn btn-primary" style={{background:'#7C3AED'}} onClick={() => { generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops); setTimeout(sendToDriver, 500); }}>📎 PDF+Email</button>
                                     </div>
-                                    <div style={{fontSize:'0.5625rem',color:'var(--text-tertiary)',marginTop:'0.375rem'}}>💡 PDF+Email: Downloads PDF, then opens email. Attach the PDF before sending.</div>
+                                    <div style={{fontSize:'0.5625rem',color:'var(--text-tertiary)',marginTop:'0.375rem'}}>💡 <b>Copy</b>: Plain text email. <b>Copy Ticket</b>: Styled delivery ticket — paste into Outlook. <b>PDF+Email</b>: Downloads PDF then opens email.</div>
                                 </>) : (<div className="empty-state"><div className="empty-icon">📧</div><div className="empty-text">Fill out the form to see email preview</div></div>)}
                             </div>
                         </div></div>
