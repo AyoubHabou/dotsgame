@@ -197,7 +197,7 @@
         // ==================== GOOGLE SHEETS LIVE ====================
         // Sheet ID from: https://docs.google.com/spreadsheets/d/10AP1Tj3o8GXspAvNKdrvsdObhKJwmQWQPPAq40vbjZs/
         const SHEET_ID = '1AcXboylGx79sd17pNPx6Vnu3yfnXlgVJxgO34qSAs1g';
-        const PUBLISHED_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwDQIOGxrKW0ZugTvTCJD9RTQFW9WcEhg5MdXNrxLXODooT1hOj9OT6wG3SWszekmry6ErysZJetGA/pub?output=csv';
+        const PUBLISHED_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUBVZaAmCPgzl_fQ3jlqIlfoVph4B0ANMjeqTPP0uRGc2W7EFhxt7O458nHKmJ_Gr8x-dXAiSbkYL/pub?output=csv';
         // To use: publish the "Dips" tab to web (File > Share > Publish to web) as CSV
         // Or use the Google Sheets API with an API key
         // For now, we use the CSV export approach which works for public sheets
@@ -439,32 +439,11 @@
                     // Capacities are in the same columns on the Date row
                     // Ullage columns are D(3), F(5), H(7), J(9), L(11), N(13)
                     for (const col of [2, 4, 6, 8, 10, 12]) {
-                        let pName = nameRow ? (nameRow[col] || '').trim() : '';
+                        const pName = nameRow ? (nameRow[col] || '').trim() : '';
                         const capRaw = (row[col] || '').trim();
                         const cap = parseNum(capRaw);
-                        // If no valid product name at this column but there's a valid capacity, check adjacent columns
-                        if ((!pName || !/reg|diesel|super|premium|supreme|furnace|stove|dyed/i.test(pName)) && cap >= 1000 && cap <= 200000) {
-                            const altName = nameRow ? (nameRow[col - 1] || '').trim() : '';
-                            if (altName && /reg|diesel|super|premium|supreme|furnace|stove|dyed/i.test(altName)) {
-                                const alreadyUsed = productCols.some(p => p.colVol === col - 1 || (p.name.replace(/ \d+$/, '').toLowerCase() === altName.toLowerCase() && Math.abs(p.colVol - col) <= 2));
-                                if (!alreadyUsed) pName = altName;
-                            }
-                        }
-                        // Validate capacity and product name
-                        if (pName && /reg|diesel|super|premium|supreme|furnace|stove|dyed/i.test(pName) && cap >= 1000 && cap <= 200000) {
-                            // Handle duplicate product names (e.g. two Diesel tanks) - number them
-                            const baseName = pName.toLowerCase();
-                            const dupes = productCols.filter(p => p.name.toLowerCase().replace(/ \d+$/, '') === baseName);
-                            if (dupes.length > 0) {
-                                // Rename first occurrence if not already numbered
-                                if (dupes.length === 1 && !dupes[0].name.match(/ \d+$/)) {
-                                    const oldName = dupes[0].name;
-                                    dupes[0].name = oldName + ' 1';
-                                    const pIdx = currentStation.products.findIndex(p => p.name === oldName);
-                                    if (pIdx >= 0) currentStation.products[pIdx].name = oldName + ' 1';
-                                }
-                                pName = pName + ' ' + (dupes.length + 1);
-                            }
+                        // Validate capacity: must be >= 1000L (no fuel tank is 1L) and <= 200000L
+                        if (pName && cap >= 1000 && cap <= 200000) {
                             productCols.push({ name: pName, capacity: cap, colVol: col, colUll: col + 1 });
                             currentStation.products.push({ name: pName, capacity: cap });
                         }
@@ -481,14 +460,22 @@
                 // Day data rows
                 const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
                 if (hasCapRow && currentStation && dayNames.includes(colBup)) {
+                    // Build a name map once: detect duplicate product names and assign unique store names
+                    const nameCount = {};
+                    productCols.forEach(pc => { nameCount[pc.name] = (nameCount[pc.name] || 0) + 1; });
+                    const nameIndex = {};
+                    for (const pc of productCols) {
+                        nameIndex[pc.name] = (nameIndex[pc.name] || 0) + 1;
+                        // If this product name appears more than once, number all occurrences
+                        pc._storeName = nameCount[pc.name] > 1 ? pc.name + ' ' + nameIndex[pc.name] : pc.name;
+                    }
                     for (const pc of productCols) {
                         const volRaw = (row[pc.colVol] || '').trim();
                         const ullRaw = (row[pc.colUll] || '').trim();
                         const vol = parseNum(volRaw);
                         const ull = parseNum(ullRaw);
-                        // Validate that volume is reasonable (< capacity * 1.1 to allow for small measurement errors)
                         if (vol > 0 && !isNaN(vol) && vol <= pc.capacity * 1.1) {
-                            currentStation.latestData[pc.name] = {
+                            currentStation.latestData[pc._storeName] = {
                                 volume: Math.round(vol),
                                 ullage: Math.round(!isNaN(ull) && ull > 0 ? ull : (pc.capacity - vol)),
                                 capacity: Math.round(pc.capacity)
@@ -1289,7 +1276,7 @@
                         const custBgLight = isValero ? '#eff6ff' : '#fef2f2';
                         const custBorder = isValero ? '#93c5fd' : '#fca5a5';
                         const logoImg = isValero ? 'https://drive.google.com/thumbnail?id=1qIvNCUmmAxVsA2DrZq5ytXCk0vqNoH56&sz=w200' : 'https://drive.google.com/thumbnail?id=1SmdqxTLvm-97MOGcuAWHzpq6C0C7hIG5&sz=w200';
-                        stopsHtml += `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;margin-bottom:16px;border:3px solid ${custColor}"><tr><td bgcolor="${custBgLight}" style="background-color:${custBgLight};padding:18px 16px;text-align:center;border-bottom:2px solid ${custBorder}"><img src="${logoImg}" width="120" height="40" style="width:120px;height:40px;margin-bottom:8px" /><br /><font color="${custColor}" style="font-size:30px;font-weight:900;letter-spacing:1px">${custName}</font></td></tr><tr><td style="padding:16px"><table style="width:100%;border-collapse:collapse"><tr><td style="padding:8px 0;font-size:12px;color:#6b8068;width:95px">Customer</td><td style="padding:8px 0;font-size:15px;font-weight:800"><font color="${custColor}">${custName}</font></td></tr><tr><td style="padding:8px 0;font-size:12px;color:#6b8068">Customer #</td><td style="padding:8px 0;font-size:16px;font-weight:800;color:#0f1f0f">${td.customer}</td></tr><tr><td style="padding:8px 0;font-size:12px;color:#6b8068">Load</td><td style="padding:8px 0;font-size:13px;font-weight:700;color:#0f1f0f">Valero Montr\u00e9al → Ottawa Airport</td></tr>${stop.pbNumber ? `<tr><td style="padding:8px 0;font-size:12px;color:#6b8068">PB</td><td style="padding:8px 0;font-size:16px;font-weight:800;color:#0f1f0f">${stop.pbNumber}</td></tr>` : ''}</table></td></tr></table>`;
+                        stopsHtml += `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;margin-bottom:16px"><tr><td style="border:3px solid ${custColor}"><table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse"><tr><td bgcolor="${custBgLight}" style="background-color:${custBgLight};padding:18px 16px;text-align:center;border-bottom:2px solid ${custBorder}"><table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td align="center" style="padding-bottom:8px"><img src="${logoImg}" width="120" height="40" alt="${custName}" style="display:block;margin:0 auto" /></td></tr><tr><td align="center" style="padding:0"><font color="${custColor}" size="6"><b>${custName}</b></font></td></tr></table></td></tr><tr><td style="padding:16px"><table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%"><tr><td width="95" style="padding:8px 0;font-size:12px;color:#6b8068" valign="top">Customer</td><td style="padding:8px 0;font-size:15px;font-weight:800"><font color="${custColor}"><b>${custName}</b></font></td></tr><tr><td width="95" style="padding:8px 0;font-size:12px;color:#6b8068" valign="top">Customer #</td><td style="padding:8px 0;font-size:16px;font-weight:800">${td.customer}</td></tr><tr><td width="95" style="padding:8px 0;font-size:12px;color:#6b8068" valign="top">Load</td><td style="padding:8px 0;font-size:13px;font-weight:700">Valero Montr\u00e9al \u2192 Ottawa Airport</td></tr>${stop.pbNumber ? `<tr><td width="95" style="padding:8px 0;font-size:12px;color:#6b8068" valign="top">PB</td><td style="padding:8px 0;font-size:16px;font-weight:800">${stop.pbNumber}</td></tr>` : ''}</table></td></tr></table></td></tr></table>`;
                         return;
                     }
                     let prodRows = Object.keys(td.products).map(p =>
@@ -1334,7 +1321,7 @@
                     infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.poNumber}</td></tr>`;
                     stopsHtml += `<div style="margin-bottom:16px;border:1px solid #c8d8c8;border-radius:8px;overflow:hidden"><table style="width:100%;border-collapse:collapse"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:12px 16px;border-bottom:2px solid #1a3c1a"><table style="width:100%"><tr><td style="width:32px;vertical-align:middle"><div style="width:30px;height:30px;background:rgba(255,255,255,0.15);border-radius:50%;text-align:center;line-height:30px;font-weight:800;font-size:14px"><font color="#1a3c1a">${si+1}</font></div></td><td style="vertical-align:middle;padding-left:10px"><div style="font-size:15px;font-weight:700"><font color="#1a3c1a">${poData.name}</font></div></td></tr></table></td></tr></table><div style="padding:14px 16px"><table style="width:100%;border-collapse:collapse">${infoRows}</table><div style="margin-top:12px"><table style="width:100%;border-collapse:collapse;background:#f7faf7;border-radius:6px;border:1px solid #d4e4d4"><tr style="background:#e8f0e8"><td colspan="2" style="padding:8px 14px;font-size:11px;font-weight:800;color:#2d5a2d;text-transform:uppercase;letter-spacing:1px">Product Codes</td></tr>${prodRows}</table></div>${compsHtml}${extraHtml}${notesHtml}${siteplanHtml}</div></div>`;
                 });
-                return `<table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"><tr><td><table style="width:100%;border-collapse:collapse"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:22px 24px;border-radius:10px 10px 0 0;text-align:center;border-bottom:3px solid #1a3c1a"><table style="width:100%;border-collapse:collapse"><tr><td style="text-align:center;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding-bottom:4px"><font color="#1a3c1a">Schooner Transport</font></td></tr><tr><td style="text-align:center;font-size:24px;font-weight:800;letter-spacing:0.3px"><font color="#1a3c1a">${isJetFuel ? 'Jet Fuel Plan' : 'Delivery Plan'}</font></td></tr></table></td></tr></table><div style="background:#fff;padding:18px 20px;border-left:1px solid #d4e4d4;border-right:1px solid #d4e4d4"><table style="width:100%;border-collapse:collapse"><tr><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:400;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Driver</div><div style="font-size:15px;font-weight:800;color:#0f1f0f;margin-top:3px">${driverName}</div></div></td><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:400;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Truck / Trailer</div><div style="font-size:15px;font-weight:800;color:#0f1f0f;margin-top:3px">${truckNumber} / ${trailerNumber}</div></div></td><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:400;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Date</div><div style="font-size:14px;font-weight:800;color:#0f1f0f;margin-top:3px">${formatDate(deliveryDate)}</div></div></td></tr></table><div style="margin-top:16px">${stopsHtml}</div>${!isJetFuel && totalVol > 0 ? `<table style="width:100%;border-collapse:collapse;border-radius:8px;margin-top:8px"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;border-radius:8px;padding:14px;text-align:center;border-top:2px solid #1a3c1a"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px"><font color="#1a3c1a">Total Volume</font></div><div style="font-size:26px;font-weight:800;margin-top:2px"><font color="#1a3c1a">${totalVol.toLocaleString()}L</font></div></td></tr></table>` : ''}</div><div style="background:#f0f5f0;padding:14px;border-radius:0 0 10px 10px;border:1px solid #d4e4d4;border-top:none;text-align:center"><div style="font-size:12px;color:#6b8068">Thank you and drive safe.</div><div style="font-size:11px;font-weight:700;color:#1a5c2e;margin-top:2px">Schooner Transport</div></div></td></tr></table>`;
+                return `<table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"><tr><td><table style="width:100%;border-collapse:collapse"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:22px 24px;border-radius:10px 10px 0 0;text-align:center;border-bottom:3px solid #1a3c1a"><table style="width:100%;border-collapse:collapse"><tr><td style="text-align:center;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding-bottom:4px"><font color="#1a3c1a">Schooner Transport</font></td></tr><tr><td style="text-align:center;font-size:24px;font-weight:800;letter-spacing:0.3px"><font color="#1a3c1a">${isJetFuel ? 'Jet Fuel Plan' : 'Delivery Plan'}</font></td></tr></table></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%"><tr><td style="background:#fff;padding:18px 20px;border-left:1px solid #d4e4d4;border-right:1px solid #d4e4d4"><table style="width:100%;border-collapse:collapse"><tr><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:400;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Driver</div><div style="font-size:15px;font-weight:800;color:#0f1f0f;margin-top:3px">${driverName}</div></div></td><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:400;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Truck / Trailer</div><div style="font-size:15px;font-weight:800;color:#0f1f0f;margin-top:3px">${truckNumber} / ${trailerNumber}</div></div></td><td style="width:33%;padding:8px;vertical-align:top"><div style="background:#f7faf7;border:1px solid #d4e4d4;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:9px;font-weight:400;color:#6b8068;text-transform:uppercase;letter-spacing:1px">Date</div><div style="font-size:14px;font-weight:800;color:#0f1f0f;margin-top:3px">${formatDate(deliveryDate)}</div></div></td></tr></table><div style="margin-top:16px">${stopsHtml}</div>${!isJetFuel && totalVol > 0 ? `<table style="width:100%;border-collapse:collapse;border-radius:8px;margin-top:8px"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;border-radius:8px;padding:14px;text-align:center;border-top:2px solid #1a3c1a"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px"><font color="#1a3c1a">Total Volume</font></div><div style="font-size:26px;font-weight:800;margin-top:2px"><font color="#1a3c1a">${totalVol.toLocaleString()}L</font></div></td></tr></table>` : ''}</td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%"><tr><td bgcolor="#f0f5f0" style="background-color:#f0f5f0;padding:14px;border:1px solid #d4e4d4;border-top:none;text-align:center"><font color="#6b8068" style="font-size:12px">Thank you and drive safe.</font><br /><font color="#1a5c2e" style="font-size:11px"><b>Schooner Transport</b></font></td></tr></table></td></tr></table>`;
             };
             const copyHtmlTicket = () => {
                 const html = generateHtmlTicket();
