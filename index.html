@@ -405,6 +405,11 @@
                         name = rawC.split('\n')[0].split('\\n')[0].trim();
                     }
 
+                    if (!po) {
+                        console.log(`  Skipping station "${name}" at row ${i} - no PO number`);
+                        currentStation = null;
+                        continue;
+                    }
                     currentStation = { po, name, products: [], latestDay: '', latestData: {} };
                     productCols = [];
                     hasCapRow = false;
@@ -589,6 +594,11 @@
                         }
                     }
 
+                    if (!po) {
+                        console.log(`Skipping station "${name}" at row ${i} - no PO number`);
+                        currentStation = null;
+                        continue;
+                    }
                     currentStation = { po, name, products: [], latestDay: '', latestData: {} };
                     productCols = [];
                     hasCapacityRow = false;
@@ -787,7 +797,7 @@
             const data = dipsData || DIPS_DATA;
 
             const getFilteredDips = () => {
-                let d = data.filter(s => Object.keys(s.latestData).length > 0);
+                let d = data.filter(s => Object.keys(s.latestData).length > 0 && !['11036','11057','11058'].includes(s.po));
                 // Deduplicate by PO# (keep last occurrence which has latest data)
                 const seen = new Map();
                 d.forEach(s => { if (s.po) seen.set(s.po, s); else seen.set(s.name, s); });
@@ -1550,7 +1560,7 @@
                                     
                                    <div className="btn-group">
     <button className="btn btn-success" onClick={copyEmail}>📋 Copy</button>
-    <button className="btn btn-success" style={{background:'#166534'}} onClick={copyHtmlTicket}>🎫 Copy Ticket</button>
+    <button className="btn btn-success" style={{background:'#166534'}} onClick={copyHtmlTicket}>🎫 Jet Fuel</button>
     <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email</button>
     <button className="btn btn-warning" onClick={() => generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops)}>📄 PDF</button>
 </div>
