@@ -1265,30 +1265,55 @@
                     if (!stop.poNumber) return;
                     const dip = findDipsForPO(stop.poNumber);
                     if (!dip) return;
-                    stop.compartments.forEach((c, ci) => {
+                    const productTotals = {};
+                    stop.compartments.forEach(c => {
                         if (!c.enabled || !c.product || c.volume <= 0) return;
                         const type = getProductType(c.product);
+                        productTotals[type] = (productTotals[type] || 0) + c.volume;
+                    });
+                    Object.entries(productTotals).forEach(([type, loaded]) => {
                         const matching = Object.keys(dip.latestData).filter(k => matchProductToTank(type, k));
                         matching.forEach(tankName => {
                             const d = dip.latestData[tankName];
                             if (!d || !d.capacity) return;
-                            const loaded = stop.compartments.filter(cc => cc.enabled && cc.product === c.product).reduce((t, cc) => t + cc.volume, 0);
                             const newVol = d.volume + loaded;
                             if (newVol > d.capacity) {
-                                warnings.push(`⛽ ${PO_DATA[stop.poNumber]?.name || stop.poNumber}: ${tankName} will OVERLOAD by ${(newVol - d.capacity).toLocaleString()}L (tank max: ${d.capacity.toLocaleString()}L)`);
-                            } else if (loaded > d.ullage) {
-                                warnings.push(`⛽ ${PO_DATA[stop.poNumber]?.name || stop.poNumber}: ${tankName} exceeds ullage by ${(loaded - d.ullage).toLocaleString()}L`);
+                                warnings.push({ station: PO_DATA[stop.poNumber]?.name || stop.poNumber, tank: tankName, overBy: newVol - d.capacity, tankMax: d.capacity, currentVol: d.volume, loading: loaded });
                             }
                         });
                     });
                 });
                 if (warnings.length > 0) {
-                    return confirm('⚠️ OVERLOAD WARNING ⚠️\n\n' + [...new Set(warnings)].join('\n\n') + '\n\n⚠️ Check the dips tab to verify tank levels.\n\nClick OK to continue anyway, or Cancel to go back and fix.');
+                    const unique = [];
+                    const seen = new Set();
+                    warnings.forEach(w => { const k = w.station + w.tank; if (!seen.has(k)) { seen.add(k); unique.push(w); } });
+                    const modal = document.createElement('div');
+                    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+                    modal.innerHTML = `<div style="background:white;border-radius:12px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+                        <div style="background:#DC2626;padding:16px 20px;text-align:center"><span style="font-size:24px">⚠️</span><div style="color:white;font-size:18px;font-weight:800;margin-top:4px">OVERLOAD WARNING</div></div>
+                        <div style="padding:20px;max-height:300px;overflow-y:auto">${unique.map(w => `<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;margin-bottom:10px">
+                            <div style="font-weight:700;color:#991B1B;font-size:14px;margin-bottom:6px">🚫 ${w.station}</div>
+                            <div style="font-size:13px;color:#7F1D1D"><b>${w.tank}</b> — over by <b style="color:#DC2626">${w.overBy.toLocaleString()}L</b></div>
+                            <div style="font-size:11px;color:#999;margin-top:4px">Current: ${w.currentVol.toLocaleString()}L + Loading: ${w.loading.toLocaleString()}L = ${(w.currentVol + w.loading).toLocaleString()}L — Tank max: ${w.tankMax.toLocaleString()}L</div>
+                        </div>`).join('')}</div>
+                        <div style="padding:12px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#6B7280;margin-bottom:4px">Check the <b>Fuel Dips</b> tab to verify tank levels</div>
+                        <div style="padding:10px 20px 16px;display:flex;gap:10px;justify-content:center">
+                            <button onclick="this.closest('div[style*=fixed]').dataset.result='cancel';this.closest('div[style*=fixed]').remove()" style="padding:8px 24px;background:#fff;border:2px solid #DC2626;color:#DC2626;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">Go Back & Fix</button>
+                            <button onclick="this.closest('div[style*=fixed]').dataset.result='ok';this.closest('div[style*=fixed]').remove()" style="padding:8px 24px;background:#DC2626;border:none;color:white;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">Send Anyway</button>
+                        </div>
+                    </div>`;
+                    document.body.appendChild(modal);
+                    return new Promise(resolve => {
+                        const observer = new MutationObserver(() => {
+                            if (!document.body.contains(modal)) { observer.disconnect(); resolve(modal.dataset.result === 'ok'); }
+                        });
+                        observer.observe(document.body, { childList: true, subtree: true });
+                    });
                 }
                 return true;
             };
-            const copyEmail = () => { if (!checkOverloads()) return; navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
-            const sendToDriver = () => { if (!checkOverloads()) return; const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
+            const copyEmail = async () => { if (!(await checkOverloads())) return; navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
+            const sendToDriver = async () => { if (!(await checkOverloads())) return; const s = encodeURIComponent(`Delivery Plan - ${formatDate(deliveryDate)} - ${driverName}`); const b = encodeURIComponent(generateEmail()); window.location.href = `mailto:?subject=${s}&body=${b}`; };
             const generateHtmlTicket = () => {
                 const stopList = stops.filter(s => s.poNumber && PO_DATA[s.poNumber] && PO_DATA[s.poNumber].terminals[s.terminal]);
                 const totalVol = stops.reduce((t,s) => t + s.compartments.filter(c=>c.enabled).reduce((st,c)=>st+c.volume,0), 0);
@@ -1351,7 +1376,7 @@
                 });
                 return `<table cellpadding="0" cellspacing="0" border="0" width="600" align="left" style="max-width:600px;width:600px;font-family:Arial,sans-serif;border:1px solid #d4e4d4"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:22px 24px;text-align:center;border-bottom:3px solid #1a3c1a"><font color="#1a3c1a" size="2"><b style="text-transform:uppercase;letter-spacing:2px">Schooner Transport</b></font><br /><font color="#1a3c1a" size="5"><b>${isJetFuel ? 'Jet Fuel Plan' : 'Delivery Plan'}</b></font></td></tr><tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:18px 20px"><table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td width="33%" valign="top" style="padding:8px"><table cellpadding="8" cellspacing="0" border="1" bordercolor="#d4e4d4" bgcolor="#f7faf7" width="100%" style="border-collapse:collapse"><tr><td align="center"><font color="#6b8068" size="1">Driver</font><br /><b>${driverName}</b></td></tr></table></td><td width="33%" valign="top" style="padding:8px"><table cellpadding="8" cellspacing="0" border="1" bordercolor="#d4e4d4" bgcolor="#f7faf7" width="100%" style="border-collapse:collapse"><tr><td align="center"><font color="#6b8068" size="1">Truck / Trailer</font><br /><b>${truckNumber} / ${trailerNumber}</b></td></tr></table></td><td width="34%" valign="top" style="padding:8px"><table cellpadding="8" cellspacing="0" border="1" bordercolor="#d4e4d4" bgcolor="#f7faf7" width="100%" style="border-collapse:collapse"><tr><td align="center"><font color="#6b8068" size="1">Date</font><br /><b>${formatDate(deliveryDate)}</b></td></tr></table></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="padding-top:16px">${stopsHtml}</td></tr></table>${!isJetFuel && totalVol > 0 ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:8px"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:14px;text-align:center;border-top:2px solid #1a3c1a"><font color="#1a3c1a" size="1"><b style="text-transform:uppercase;letter-spacing:1.5px">Total Volume</b></font><br /><font color="#1a3c1a" size="6"><b>${totalVol.toLocaleString()}L</b></font></td></tr></table>` : ''}</td></tr><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:14px;text-align:center;border-top:2px solid #1a3c1a"><font color="#6b8068" size="2">Thank you and drive safe.</font><br /><font color="#1a5c2e" size="2"><b>Schooner Transport</b></font></td></tr></table>`;
             };
-            const copyHtmlTicket = () => { if (!checkOverloads()) return;
+            const copyHtmlTicket = async () => { if (!(await checkOverloads())) return;
                 const html = generateHtmlTicket();
                 const blob = new Blob([html], {type: 'text/html'});
                 const item = new ClipboardItem({'text/html': blob, 'text/plain': new Blob([generateEmail()], {type: 'text/plain'})});
