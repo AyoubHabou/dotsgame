@@ -1265,22 +1265,31 @@
                     if (!stop.poNumber) return;
                     const dip = findDipsForPO(stop.poNumber);
                     if (!dip) return;
-                    const productTotals = {};
+                    const tankLoads = {};
                     stop.compartments.forEach(c => {
                         if (!c.enabled || !c.product || c.volume <= 0) return;
-                        const type = getProductType(c.product);
-                        productTotals[type] = (productTotals[type] || 0) + c.volume;
-                    });
-                    Object.entries(productTotals).forEach(([type, loaded]) => {
-                        const matching = Object.keys(dip.latestData).filter(k => matchProductToTank(type, k));
-                        matching.forEach(tankName => {
-                            const d = dip.latestData[tankName];
-                            if (!d || !d.capacity) return;
-                            const newVol = d.volume + loaded;
-                            if (newVol > d.capacity) {
-                                warnings.push({ station: PO_DATA[stop.poNumber]?.name || stop.poNumber, tank: tankName, overBy: newVol - d.capacity, tankMax: d.capacity, currentVol: d.volume, loading: loaded });
+                        if (c.assignedTank) {
+                            tankLoads[c.assignedTank.toLowerCase()] = (tankLoads[c.assignedTank.toLowerCase()] || 0) + c.volume;
+                        } else {
+                            const type = getProductType(c.product);
+                            const matching = Object.keys(dip.latestData).filter(k => matchProductToTank(type, k));
+                            if (matching.length === 1) {
+                                tankLoads[matching[0].toLowerCase()] = (tankLoads[matching[0].toLowerCase()] || 0) + c.volume;
+                            } else {
+                                matching.forEach(m => {
+                                    tankLoads[m.toLowerCase()] = (tankLoads[m.toLowerCase()] || 0) + c.volume;
+                                });
                             }
-                        });
+                        }
+                    });
+                    Object.entries(dip.latestData).forEach(([tankName, d]) => {
+                        if (!d || !d.capacity) return;
+                        const loaded = tankLoads[tankName.toLowerCase()] || 0;
+                        if (loaded <= 0) return;
+                        const newVol = d.volume + loaded;
+                        if (newVol > d.capacity) {
+                            warnings.push({ station: PO_DATA[stop.poNumber]?.name || stop.poNumber, tank: tankName, overBy: newVol - d.capacity, tankMax: d.capacity, currentVol: d.volume, loading: loaded, newVol: newVol });
+                        }
                     });
                 });
                 if (warnings.length > 0) {
@@ -1289,14 +1298,19 @@
                     warnings.forEach(w => { const k = w.station + w.tank; if (!seen.has(k)) { seen.add(k); unique.push(w); } });
                     const modal = document.createElement('div');
                     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
-                    modal.innerHTML = `<div style="background:white;border-radius:12px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+                    modal.innerHTML = `<div style="background:white;border-radius:12px;max-width:520px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
                         <div style="background:#DC2626;padding:16px 20px;text-align:center"><span style="font-size:24px">⚠️</span><div style="color:white;font-size:18px;font-weight:800;margin-top:4px">OVERLOAD WARNING</div></div>
-                        <div style="padding:20px;max-height:300px;overflow-y:auto">${unique.map(w => `<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;margin-bottom:10px">
-                            <div style="font-weight:700;color:#991B1B;font-size:14px;margin-bottom:6px">🚫 ${w.station}</div>
-                            <div style="font-size:13px;color:#7F1D1D"><b>${w.tank}</b> — over by <b style="color:#DC2626">${w.overBy.toLocaleString()}L</b></div>
-                            <div style="font-size:11px;color:#999;margin-top:4px">Current: ${w.currentVol.toLocaleString()}L + Loading: ${w.loading.toLocaleString()}L = ${(w.currentVol + w.loading).toLocaleString()}L — Tank max: ${w.tankMax.toLocaleString()}L</div>
+                        <div style="padding:20px;max-height:350px;overflow-y:auto">${unique.map(w => `<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:14px;margin-bottom:10px">
+                            <div style="font-weight:700;color:#991B1B;font-size:14px;margin-bottom:8px">🚫 ${w.station}</div>
+                            <div style="font-size:14px;color:#7F1D1D;font-weight:700;margin-bottom:10px">${w.tank} — over by <span style="color:#DC2626;font-size:16px">${w.overBy.toLocaleString()}L</span></div>
+                            <table style="width:100%;border-collapse:collapse;font-size:12px">
+                                <tr><td style="padding:4px 8px;background:#fff;border:1px solid #fecaca;border-radius:4px 0 0 0;color:#6B7280">In tank now</td><td style="padding:4px 8px;background:#fff;border:1px solid #fecaca;text-align:right;font-weight:700;color:#1f2937">${w.currentVol.toLocaleString()}L</td></tr>
+                                <tr><td style="padding:4px 8px;background:#fff;border:1px solid #fecaca;color:#6B7280">+ Loading</td><td style="padding:4px 8px;background:#fff;border:1px solid #fecaca;text-align:right;font-weight:700;color:#DC2626">+${w.loading.toLocaleString()}L</td></tr>
+                                <tr><td style="padding:4px 8px;background:#FEF2F2;border:1px solid #fecaca;color:#6B7280;font-weight:700">= Total</td><td style="padding:4px 8px;background:#FEF2F2;border:1px solid #fecaca;text-align:right;font-weight:800;color:#991B1B">${w.newVol.toLocaleString()}L</td></tr>
+                                <tr><td style="padding:4px 8px;background:#fff;border:1px solid #fecaca;border-radius:0 0 0 4px;color:#6B7280">Tank max</td><td style="padding:4px 8px;background:#fff;border:1px solid #fecaca;border-radius:0 0 4px 0;text-align:right;font-weight:700;color:#1f2937">${w.tankMax.toLocaleString()}L</td></tr>
+                            </table>
                         </div>`).join('')}</div>
-                        <div style="padding:12px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#6B7280;margin-bottom:4px">Check the <b>Fuel Dips</b> tab to verify tank levels</div>
+                        <div style="padding:12px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#6B7280">Check the <b>Fuel Dips</b> tab to verify tank levels</div>
                         <div style="padding:10px 20px 16px;display:flex;gap:10px;justify-content:center">
                             <button onclick="this.closest('div[style*=fixed]').dataset.result='cancel';this.closest('div[style*=fixed]').remove()" style="padding:8px 24px;background:#fff;border:2px solid #DC2626;color:#DC2626;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">Go Back & Fix</button>
                             <button onclick="this.closest('div[style*=fixed]').dataset.result='ok';this.closest('div[style*=fixed]').remove()" style="padding:8px 24px;background:#DC2626;border:none;color:white;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer">Send Anyway</button>
