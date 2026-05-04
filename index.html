@@ -1350,7 +1350,11 @@
                         if (prod.startsWith('super gas'))
                             return '<span style="color:#DC2626;font-weight:bold">' + esc + '<' + '/span>';
                         if (prod.startsWith('clear diesel'))
-                            return '<span style="background-color:#FEF08A;padding:1px 3px">' + esc + '<' + '/span>';
+                            return '<span style="background-color:#FFFF00;padding:1px 3px">' + esc + '<' + '/span>';
+                    }
+                    const lm = esc.match(/^([A-Za-z][A-Za-z0-9 #]*): (.*)$/);
+                    if (lm) {
+                        return '<span style="font-weight:600">' + lm[1] + ':<' + '/span> ' + lm[2];
                     }
                     return esc;
                 });
@@ -1532,7 +1536,9 @@
                 const htmlBody = generateHtmlEmail();
                 const htmlWrapped = '<html><body style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8">' + htmlBody + '<' + '/body><' + '/html>';
                 const toEntities = function(str) { return str.replace(/[^\x00-\x7F]/g, function(ch) { return '&#' + ch.charCodeAt(0) + ';'; }); };
-                window.location.href = 'schooner-dispatch://send?subject=' + encodeURIComponent(toEntities(subject)) + '&body=' + encodeURIComponent(toEntities(htmlWrapped));
+                const safeSubj = toEntities(subject);
+                const safeHtml = '<!--subject:' + safeSubj + '-->' + toEntities(htmlWrapped);
+                window.location.href = 'schooner-dispatch://send?body=' + encodeURIComponent(safeHtml);
             };
             const generateHtmlTicket = () => {
                 const stopList = stops.filter(s => s.poNumber && PO_DATA[s.poNumber] && PO_DATA[s.poNumber].terminals[s.terminal]);
