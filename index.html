@@ -1531,7 +1531,8 @@
                 const subject = 'Delivery Plan - ' + formatDate(deliveryDate) + ' - ' + driverName;
                 const htmlBody = generateHtmlEmail();
                 const htmlWrapped = '<html><body style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8">' + htmlBody + '<' + '/body><' + '/html>';
-                window.location.href = 'schooner-dispatch://send?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(htmlWrapped);
+                const toEntities = function(str) { return str.replace(/[^\x00-\x7F]/g, function(ch) { return '&#' + ch.charCodeAt(0) + ';'; }); };
+                window.location.href = 'schooner-dispatch://send?subject=' + encodeURIComponent(toEntities(subject)) + '&body=' + encodeURIComponent(toEntities(htmlWrapped));
             };
             const generateHtmlTicket = () => {
                 const stopList = stops.filter(s => s.poNumber && PO_DATA[s.poNumber] && PO_DATA[s.poNumber].terminals[s.terminal]);
