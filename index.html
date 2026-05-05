@@ -1032,6 +1032,238 @@
             doc.save(`Delivery_Plan_${deliveryDate}_${driverName.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
         }
 
+        // ==================== ASPHALT TAB ====================
+        const ASPHALT_PICKUPS = ['GIP MILLHAVEN','PRELOAD','MCASPHALT VALLEYFIELD','NANTICOKE','MCASPHALT OTTAWA','CANADIAN ASPHALT HAMILTON','BITUMAR','MCASPHALT OSHAWA','YELLOWLINE HAMILTON','SUNCOR MONTREAL','KILDAIR','IKO HAMILTON','SUNCOR - TME','MCASPHALT BECANCOUR','Other'];
+        const ASPHALT_DROPOFFS = ['TOMLINSON RIDEAU','MCA - EASTERN PASSAGE, NS','TOMLINSON MOODIE DRIVE','CORNWALL GRAVEL (IN GREELY)','CORNWALL GRAVEL (IN CORNWALL)','CONDOR CHEMICALS','CAVANAUGH - STITTSVILLE','MCASPHALT BECANCOUR','CANADIAN ASPHALT HAMILTON','ROTOMILL','GIP AYLMER','MILLAR PAVING','MCA - PERTH ANDOVER, NB','GIP GATINEAU','GIP MILLHAVEN','GIP BEARBROOK','GIP KINGSTON','GIP RIDEAU (BOYCE)','GIP BELLEVILLE','GIP KEMPTVILLE','MCASPHALT MONTREAL','MCA VALLEYFIELD','MCA OTTAWA','GIP CORNWALL','GIP BANK STREET','GIP CARP ROAD (HUNTLEY PLANT)','IKO BRAMPTON','IKO HAWKESBURY','IKO HAMILTON','BEI BARRYS BAY','BLAIR ASPHALT','BEI PETAWAWA','DEMIX (ST MARTIN STREET)','DEMIX (SAULNIER STREET)','Other'];
+        const ASPHALT_PRODUCTS = ['SLOPWAX','PRODASPH','FLUX 1500','PG 58-28','PG 58-34','PG 64-34','PG 58 – 28 XJ','PG 58 – 28 X','PG 58 – 34 J','PG 58 – 34 XJ','PG 58 – 34 X','PG 58 E - 34 HRD','PG 58 S – 28 HRD','PG 58 – 34 PMA','PG 64 – 28','PG 64 - 34','PG 64 - 34 J','PG 64 - 34 XJ','Other'];
+
+        function AsphaltTab() {
+            const [aDriver, setADriver] = useState('');
+            const [aTiming, setATiming] = useState('tonight');
+            const [aPickup, setAPickup] = useState('');
+            const [aPickupOther, setAPickupOther] = useState('');
+            const [aPickupAddr, setAPickupAddr] = useState('');
+            const [aPickupSearch, setAPickupSearch] = useState('');
+            const [aPickupOpen, setAPickupOpen] = useState(false);
+            const [aDropoff, setADropoff] = useState('');
+            const [aDropoffOther, setADropoffOther] = useState('');
+            const [aDropoffAddr, setADropoffAddr] = useState('');
+            const [aDropoffSearch, setADropoffSearch] = useState('');
+            const [aDropoffOpen, setADropoffOpen] = useState(false);
+            const [aLoadTime, setALoadTime] = useState('');
+            const [aDeliveryTime, setADeliveryTime] = useState('');
+            const [aPO, setAPO] = useState('');
+            const [aRef, setARef] = useState('');
+            const [aProduct, setAProduct] = useState('');
+            const [aProductOther, setAProductOther] = useState('');
+            const [aProductSearch, setAProductSearch] = useState('');
+            const [aProductOpen, setAProductOpen] = useState(false);
+            const [aNotes, setANotes] = useState('');
+            const [aCopied, setACopied] = useState(false);
+
+            const pickupDisplay = aPickup === 'Other' ? (aPickupOther || 'Other') : aPickup;
+            const dropoffDisplay = aDropoff === 'Other' ? (aDropoffOther || 'Other') : aDropoff;
+            const productDisplay = aProduct === 'Other' ? (aProductOther || 'Other') : aProduct;
+            const filteredPickups = ASPHALT_PICKUPS.filter(p => p.toLowerCase().includes(aPickupSearch.toLowerCase()));
+            const filteredDropoffs = ASPHALT_DROPOFFS.filter(d => d.toLowerCase().includes(aDropoffSearch.toLowerCase()));
+            const filteredProducts = ASPHALT_PRODUCTS.filter(p => p.toLowerCase().includes(aProductSearch.toLowerCase()));
+
+            const isComplete = aDriver && aTiming;
+
+            const generateAsphaltMsg = () => {
+                if (!isComplete) return '';
+                const pu = aPickup === 'Other' ? aPickupOther : aPickup;
+                const do_ = aDropoff === 'Other' ? aDropoffOther : aDropoff;
+                const prod = aProduct === 'Other' ? aProductOther : aProduct;
+                let msg = `Hey ${aDriver},\n\nhere's your load plan for ${aTiming}.\n`;
+                if (pu) {
+                    msg += `\nLoad from ${pu}`;
+                    if (aPickupAddr) msg += `\nAddress: ${aPickupAddr}`;
+                    msg += '\n';
+                }
+                if (do_) {
+                    msg += `Deliver to ${do_}`;
+                    if (aDropoffAddr) msg += `\nAddress: ${aDropoffAddr}`;
+                    msg += '\n';
+                }
+                if (aLoadTime) msg += `Loading Time: ${aLoadTime}\n`;
+                if (aDeliveryTime) msg += `Delivery Time: ${aDeliveryTime}\n`;
+                if (prod) msg += `Product - ${prod}\n`;
+                if (aPO) msg += `PO - ${aPO}\n`;
+                if (aRef) msg += `PB: ${aRef}\n`;
+                if (aNotes) msg += `\n${aNotes}\n`;
+                msg += '\nThank you';
+                return msg;
+            };
+
+            const copyAsphalt = () => {
+                const msg = generateAsphaltMsg();
+                if (!msg) return;
+                navigator.clipboard.writeText(msg).then(() => { setACopied(true); setTimeout(() => setACopied(false), 2000); });
+            };
+
+            const resetAsphalt = () => {
+                if (!window.confirm('Clear the asphalt form?')) return;
+                setADriver(''); setATiming('tonight');
+                setAPickup(''); setAPickupOther(''); setAPickupAddr('');
+                setADropoff(''); setADropoffOther(''); setADropoffAddr('');
+                setALoadTime(''); setADeliveryTime(''); setAPO(''); setARef('');
+                setAProduct(''); setAProductOther(''); setANotes('');
+            };
+
+            return (
+                <div className="main-layout">
+                    <div className="card">
+                        <div className="card-header">
+                            <div className="card-icon">🛣️</div>
+                            <h2 className="card-title">Asphalt Delivery Order</h2>
+                            <button onClick={resetAsphalt} style={{display:'flex',alignItems:'center',gap:'0.375rem',padding:'0.375rem 0.9rem',background:'linear-gradient(135deg,#92400e,#78350f)',color:'white',border:'none',borderRadius:'20px',fontWeight:700,fontSize:'0.8rem',cursor:'pointer',whiteSpace:'nowrap',boxShadow:'0 2px 8px rgba(120,53,15,0.3)',letterSpacing:'0.02em',flexShrink:0}}>＋ New</button>
+                        </div>
+                        <div className="card-body">
+                            <div className="form-section">
+                                <div className="section-title"><span>👤</span> Driver</div>
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label className="form-label form-label-required">Driver Name</label>
+                                        <input type="text" className="form-input" placeholder="Driver name..." value={aDriver} onChange={e => setADriver(e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label form-label-required">Load Plan For</label>
+                                        <div style={{display:'flex',gap:'0.375rem'}}>
+                                            {['today','tonight','tomorrow'].map(t => (
+                                                <button key={t} onClick={() => setATiming(t)}
+                                                    style={{flex:1,padding:'0.5rem',border:'2px solid',borderColor:aTiming===t?'var(--primary)':'var(--border)',borderRadius:'var(--radius-sm)',background:aTiming===t?'var(--primary)':'white',color:aTiming===t?'white':'var(--text-secondary)',fontWeight:600,fontSize:'0.8125rem',cursor:'pointer',transition:'all 0.15s',textTransform:'capitalize'}}>
+                                                    {t}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-section">
+                                <div className="section-title"><span>📍</span> Route</div>
+                                <div className="form-grid">
+                                    <div className="form-group" style={{position:'relative'}}>
+                                        <label className="form-label">Pick Up Location</label>
+                                        <input type="text" className="form-input" placeholder="Search pickup..." value={aPickupSearch || pickupDisplay}
+                                            onChange={e => { setAPickupSearch(e.target.value); setAPickupOpen(true); if (!e.target.value) { setAPickup(''); setAPickupOther(''); setAPickupAddr(''); } }}
+                                            onFocus={() => { setAPickupSearch(''); setAPickupOpen(true); }}
+                                            onBlur={() => setTimeout(() => setAPickupOpen(false), 150)}
+                                        />
+                                        {aPickupOpen && filteredPickups.length > 0 && (
+                                            <div style={{position:'absolute',top:'100%',left:0,right:0,background:'white',border:'2px solid var(--border-focus)',borderRadius:'var(--radius-sm)',boxShadow:'var(--shadow-lg)',zIndex:100,maxHeight:'200px',overflowY:'auto'}}>
+                                                {filteredPickups.map(p => (
+                                                    <div key={p} style={{padding:'0.45rem 0.75rem',cursor:'pointer',fontSize:'0.8125rem',fontWeight:p===aPickup?700:400,background:p===aPickup?'#EFF6FF':'white'}}
+                                                        onMouseDown={() => { setAPickup(p); setAPickupSearch(''); setAPickupOpen(false); if (p !== 'Other') setAPickupOther(''); }}>
+                                                        {p}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {aPickup === 'Other' && (
+                                            <input type="text" className="form-input" style={{marginTop:'0.375rem'}} placeholder="Specify pickup location..." value={aPickupOther} onChange={e => setAPickupOther(e.target.value)} />
+                                        )}
+                                        {aPickup && (
+                                            <input type="text" className="form-input" style={{marginTop:'0.375rem'}} placeholder="Address..." value={aPickupAddr} onChange={e => setAPickupAddr(e.target.value)} />
+                                        )}
+                                    </div>
+                                    <div className="form-group" style={{position:'relative'}}>
+                                        <label className="form-label">Delivery Location</label>
+                                        <input type="text" className="form-input" placeholder="Search delivery..." value={aDropoffSearch || dropoffDisplay}
+                                            onChange={e => { setADropoffSearch(e.target.value); setADropoffOpen(true); if (!e.target.value) { setADropoff(''); setADropoffOther(''); setADropoffAddr(''); } }}
+                                            onFocus={() => { setADropoffSearch(''); setADropoffOpen(true); }}
+                                            onBlur={() => setTimeout(() => setADropoffOpen(false), 150)}
+                                        />
+                                        {aDropoffOpen && filteredDropoffs.length > 0 && (
+                                            <div style={{position:'absolute',top:'100%',left:0,right:0,background:'white',border:'2px solid var(--border-focus)',borderRadius:'var(--radius-sm)',boxShadow:'var(--shadow-lg)',zIndex:100,maxHeight:'200px',overflowY:'auto'}}>
+                                                {filteredDropoffs.map(d => (
+                                                    <div key={d} style={{padding:'0.45rem 0.75rem',cursor:'pointer',fontSize:'0.8125rem',fontWeight:d===aDropoff?700:400,background:d===aDropoff?'#EFF6FF':'white'}}
+                                                        onMouseDown={() => { setADropoff(d); setADropoffSearch(''); setADropoffOpen(false); if (d !== 'Other') setADropoffOther(''); }}>
+                                                        {d}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {aDropoff === 'Other' && (
+                                            <input type="text" className="form-input" style={{marginTop:'0.375rem'}} placeholder="Specify delivery location..." value={aDropoffOther} onChange={e => setADropoffOther(e.target.value)} />
+                                        )}
+                                        {aDropoff && (
+                                            <input type="text" className="form-input" style={{marginTop:'0.375rem'}} placeholder="Address..." value={aDropoffAddr} onChange={e => setADropoffAddr(e.target.value)} />
+                                        )}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Loading Time</label>
+                                        <input type="text" className="form-input" placeholder="e.g. 6am" value={aLoadTime} onChange={e => setALoadTime(e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Delivery Time</label>
+                                        <input type="text" className="form-input" placeholder="e.g. 5am tomorrow morning" value={aDeliveryTime} onChange={e => setADeliveryTime(e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-section">
+                                <div className="section-title"><span>📦</span> Load Details</div>
+                                <div className="form-grid">
+                                    <div className="form-group" style={{position:'relative'}}>
+                                        <label className="form-label">Product</label>
+                                        <input type="text" className="form-input" placeholder="Search product..." value={aProductSearch || productDisplay}
+                                            onChange={e => { setAProductSearch(e.target.value); setAProductOpen(true); if (!e.target.value) { setAProduct(''); setAProductOther(''); } }}
+                                            onFocus={() => { setAProductSearch(''); setAProductOpen(true); }}
+                                            onBlur={() => setTimeout(() => setAProductOpen(false), 150)}
+                                        />
+                                        {aProductOpen && filteredProducts.length > 0 && (
+                                            <div style={{position:'absolute',top:'100%',left:0,right:0,background:'white',border:'2px solid var(--border-focus)',borderRadius:'var(--radius-sm)',boxShadow:'var(--shadow-lg)',zIndex:100,maxHeight:'200px',overflowY:'auto'}}>
+                                                {filteredProducts.map(p => (
+                                                    <div key={p} style={{padding:'0.45rem 0.75rem',cursor:'pointer',fontSize:'0.8125rem',fontWeight:p===aProduct?700:400,background:p===aProduct?'#EFF6FF':'white'}}
+                                                        onMouseDown={() => { setAProduct(p); setAProductSearch(''); setAProductOpen(false); if (p !== 'Other') setAProductOther(''); }}>
+                                                        {p}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {aProduct === 'Other' && (
+                                            <input type="text" className="form-input" style={{marginTop:'0.375rem'}} placeholder="Specify product..." value={aProductOther} onChange={e => setAProductOther(e.target.value)} />
+                                        )}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">PO #</label>
+                                        <input type="text" className="form-input" placeholder="Purchase order #..." value={aPO} onChange={e => setAPO(e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">PB #</label>
+                                        <input type="text" className="form-input" placeholder="e.g. PB150135" value={aRef} onChange={e => setARef(e.target.value)} />
+                                    </div>
+                                    <div className="form-group form-group-full">
+                                        <label className="form-label">Additional Notes</label>
+                                        <textarea className="form-textarea" placeholder="Any additional notes..." value={aNotes} onChange={e => setANotes(e.target.value)} style={{minHeight:'60px'}} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="email-preview">
+                        <div className="card">
+                            <div className="card-header"><div className="card-icon">💬</div><h2 className="card-title">Message Preview</h2></div>
+                            <div className="card-body">
+                                {isComplete ? (<>
+                                    <div className="email-content">{generateAsphaltMsg()}</div>
+                                    <div className="btn-group" style={{marginTop:'0.5rem'}}>
+                                        <button className="btn btn-success" onClick={copyAsphalt}>{aCopied ? '✅ Copied!' : '📋 Copy'}</button>
+                                        <button className="btn btn-primary" onClick={() => { window.location.href = 'sms:?body=' + encodeURIComponent(generateAsphaltMsg()); }}>📱 SMS</button>
+                                    </div>
+                                </>) : (
+                                    <div className="empty-state"><div className="empty-icon">🛣️</div><div className="empty-text">Enter a driver name to preview</div></div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         // ==================== MAIN APP ====================
         function DispatchSystem() {
             const [activeTab, setActiveTab] = useState('dispatch');
@@ -1530,6 +1762,26 @@
 
 
             const copyEmail = async () => { if (!(await checkOverloads())) return; navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
+            const downloadEmlBackup = async () => {
+                if (!(await checkOverloads())) return;
+                const subject = 'Delivery Plan - ' + formatDate(deliveryDate) + ' - ' + driverName;
+                const body = generateEmail();
+                const emlContent = [
+                    'MIME-Version: 1.0',
+                    'Content-Type: text/plain; charset=UTF-8',
+                    'Subject: ' + subject,
+                    'To: ',
+                    '',
+                    body
+                ].join('\r\n');
+                const blob = new Blob([emlContent], {type: 'message/rfc822'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'DeliveryPlan_' + deliveryDate + '_' + driverName.replace(/[^a-zA-Z0-9]/g,'_') + '.eml';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
             const sendToDriver = async () => {
                 if (!(await checkOverloads())) return;
                 const subject = 'Delivery Plan - ' + formatDate(deliveryDate) + ' - ' + driverName;
@@ -1658,9 +1910,10 @@
                 <div className="tab-nav">
                     <button className={`tab-btn ${activeTab === 'dispatch' ? 'active' : ''}`} onClick={() => setActiveTab('dispatch')}>📋 Dispatch</button>
                     <button className={`tab-btn ${activeTab === 'dips' ? 'active' : ''}`} onClick={() => setActiveTab('dips')}>⛽ Fuel Dips {criticalCount > 0 && <span className="tab-badge">{criticalCount}</span>}</button>
+                    <button className={`tab-btn ${activeTab === 'asphalt' ? 'active' : ''}`} onClick={() => setActiveTab('asphalt')}>🛣️ Asphalt</button>
                 </div>
 
-                {activeTab === 'dips' ? (
+                {activeTab === 'asphalt' ? (<AsphaltTab />) : activeTab === 'dips' ? (
                     <div className="card"><div className="card-header">
                         <img src="logo.jpg" alt="" style={{height:'22px',borderRadius:'3px',marginRight:'0.35rem'}} /><h2 className="card-title">Live Fuel Inventory (Dips)</h2>
                         <div style={{display:'flex',gap:'0.375rem',alignItems:'center',flexWrap:'wrap'}}>
@@ -1928,7 +2181,7 @@
     <button className="btn btn-success" onClick={copyEmail}>📋 Copy</button>
     <button className="btn btn-success" style={{background:'#166534'}} onClick={copyHtmlTicket}>🎫 Jet Fuel</button>
     <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email</button>
-    <button className="btn btn-warning" onClick={() => generatePDF(driverName, truckNumber, trailerNumber, deliveryDate, stops)}>📄 PDF</button>
+    <button className="btn btn-warning" onClick={downloadEmlBackup}>📨 Send</button>
 </div>
 <div style={{marginTop:'0.5rem',display:'flex',alignItems:'center',gap:'0.4rem'}}>
     <label style={{display:'flex',alignItems:'center',gap:'0.3rem',fontSize:'0.6875rem',fontWeight:600,color:'var(--text-secondary)',cursor:'pointer',padding:'0.25rem 0.5rem',background:includeSitePlans?'#f0f7f0':'#f8fafc',border:includeSitePlans?'1px solid #b8d4b8':'1px solid #e2e8f0',borderRadius:'6px'}}>
