@@ -1825,8 +1825,8 @@
                     }
                     let notesHtml = '';
                     if (td.supplier) notesHtml += `<div style="margin-top:8px;padding:7px 12px;background:#f0f5f0;border-radius:4px;font-size:12px;color:#2d5a2d"><b>Supplier:</b> ${td.supplier}</div>`;
-                    if (td.notes) {     const formattedNotes = td.notes.replace(/^([^:
-]+):/gm, '<b>$1</b>:');     notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#fff8ee;border-left:3px solid #d4a017;border-radius:0 4px 4px 0;font-size:12px;color:#7a5c00;white-space:pre-line">${formattedNotes}</div>`; }
+                    if (td.notes) { const formattedNotes = td.notes.replace(/^([^:
+]+):/gm, '<b>$1</b>:'); notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#fff8ee;border-left:3px solid #d4a017;border-radius:0 4px 4px 0;font-size:12px;color:#7a5c00;white-space:pre-line">${formattedNotes}</div>`; }
                     if (stop.notes) notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#f0f7f0;border-left:3px solid #2d7a3a;border-radius:0 4px 4px 0;font-size:12px;color:#1a4a1a">&#x1F4DD; ${stop.notes}</div>`;
                     let siteplanHtml = poData.siteplan ? `<div style="margin-top:10px"><a href="${poData.siteplan}" style="display:inline-block;padding:7px 16px;background:#f0f7f0;border:1px solid #b8d4b8;border-radius:6px;color:#1a5c2e;font-size:12px;font-weight:700;text-decoration:none">&#x1F4CE; Site Plan & Dip Chart</a></div>` : '';
                     let extraHtml = '';
