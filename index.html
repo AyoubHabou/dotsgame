@@ -1763,25 +1763,12 @@
 
             const copyEmail = async () => { if (!(await checkOverloads())) return; navigator.clipboard.writeText(generateEmail()); alert('✅ Email copied!'); };
             const downloadEmlBackup = async () => {
-                if (!(await checkOverloads())) return;
-                const subject = 'Delivery Plan - ' + formatDate(deliveryDate) + ' - ' + driverName;
-                const body = generateEmail();
-                const emlContent = [
-                    'MIME-Version: 1.0',
-                    'Content-Type: text/plain; charset=UTF-8',
-                    'Subject: ' + subject,
-                    'To: ',
-                    '',
-                    body
-                ].join('\r\n');
-                const blob = new Blob([emlContent], {type: 'message/rfc822'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'DeliveryPlan_' + deliveryDate + '_' + driverName.replace(/[^a-zA-Z0-9]/g,'_') + '.eml';
-                a.click();
-                URL.revokeObjectURL(url);
-            };
+    if (!(await checkOverloads())) return;
+    const subject = 'Delivery Plan - ' + formatDate(deliveryDate) + ' - ' + driverName;
+    const body = generateEmail();
+    const mailtoLink = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    window.location.href = mailtoLink;
+};
             const sendToDriver = async () => {
                 if (!(await checkOverloads())) return;
                 const subject = 'Delivery Plan - ' + formatDate(deliveryDate) + ' - ' + driverName;
@@ -2178,10 +2165,10 @@
                                     <div className="email-content">{generateEmail()}</div>
                                     
                                    <div className="btn-group">
-    <button className="btn btn-success" onClick={copyEmail}>📋 Copy</button>
-    <button className="btn btn-success" style={{background:'#166534'}} onClick={copyHtmlTicket}>🎫 Jet Fuel</button>
-    <button className="btn btn-primary" onClick={sendToDriver}>✉️ Email</button>
-    <button className="btn btn-warning" onClick={downloadEmlBackup}>📨 Send</button>
+    <button className="btn btn-success" onClick={copyEmail}>Copy</button>
+    <button className="btn btn-success" style={{background:'#166534'}} onClick={copyHtmlTicket}> Jet Fuel</button>
+    <button className="btn btn-primary" onClick={sendToDriver}>Formatted Email</button>
+    <button className="btn btn-primary" style={{background:'#2563EB'}} onClick={downloadEmlBackup}>Plain Email</button>
 </div>
 <div style={{marginTop:'0.5rem',display:'flex',alignItems:'center',gap:'0.4rem'}}>
     <label style={{display:'flex',alignItems:'center',gap:'0.3rem',fontSize:'0.6875rem',fontWeight:600,color:'var(--text-secondary)',cursor:'pointer',padding:'0.25rem 0.5rem',background:includeSitePlans?'#f0f7f0':'#f8fafc',border:includeSitePlans?'1px solid #b8d4b8':'1px solid #e2e8f0',borderRadius:'6px'}}>
