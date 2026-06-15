@@ -1587,6 +1587,8 @@
                             return '<span style="color:#DC2626;font-weight:bold">' + esc + '<' + '/span>';
                         if (prod.startsWith('clear diesel'))
                             return '<span style="background-color:#FFFF00;padding:1px 3px">' + esc + '<' + '/span>';
+                        if (prod.startsWith('dyed diesel'))
+                            return '<span style="background-color:#22C55E;color:#fff;padding:1px 3px">' + esc + '<' + '/span>';
                     }
                     const lm = esc.match(/^([A-Za-z][A-Za-z0-9 #]*): (.*)$/);
                     if (lm) {
