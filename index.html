@@ -1309,6 +1309,11 @@
             });
             const [dipsLoading, setDipsLoading] = useState(false);
             const [refreshStatus, setRefreshStatus] = useState(null);
+            useEffect(() => {
+    refreshDips();
+    const interval = setInterval(refreshDips, 60 * 1000);
+    return () => clearInterval(interval);
+}, [dipsTabName]);
             const [editableEmail, setEditableEmail] = useState('');
             const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
             const [includeSitePlans, setIncludeSitePlans] = useState(false);
@@ -1339,7 +1344,8 @@
             const dipsData = liveDips || DIPS_DATA;
 
             const refreshDips = async () => {
-                setDipsLoading(true);
+    if (dipsLoading) return;
+    setDipsLoading(true);
                 const result = await fetchLiveDips(dipsTabName);
                 if (result && !result.error && result.length > 0) {
                     const merged = mergeDipsData(result);
