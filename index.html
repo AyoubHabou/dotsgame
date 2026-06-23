@@ -232,7 +232,7 @@
             // APPROACH 1: Published CSV endpoint (most reliable - has CORS headers)
             try {
                 console.log('Trying published CSV endpoint...');
-                const resp = await fetch(PUBLISHED_CSV_URL);
+                const resp = await fetch(PUBLISHED_CSV_URL + '&t=' + Date.now(), {cache: 'no-store'});
                 if (resp.ok) {
                     const csv = await resp.text();
                     console.log('CSV response length:', csv.length, 'first 200 chars:', csv.substring(0, 200));
