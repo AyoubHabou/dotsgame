@@ -232,7 +232,7 @@
             // APPROACH 1: Published CSV endpoint (most reliable - has CORS headers)
             try {
                 console.log('Trying published CSV endpoint...');
-                const resp = await fetch(PUBLISHED_CSV_URL + '&t=' + Date.now(), {cache: 'no-store'});
+                const resp = await fetch(PUBLISHED_CSV_URL);
                 if (resp.ok) {
                     const csv = await resp.text();
                     console.log('CSV response length:', csv.length, 'first 200 chars:', csv.substring(0, 200));
@@ -1309,11 +1309,6 @@
             });
             const [dipsLoading, setDipsLoading] = useState(false);
             const [refreshStatus, setRefreshStatus] = useState(null);
-            useEffect(() => {
-    refreshDips();
-    const interval = setInterval(refreshDips, 60 * 1000);
-    return () => clearInterval(interval);
-}, [dipsTabName]);
             const [editableEmail, setEditableEmail] = useState('');
             const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
             const [includeSitePlans, setIncludeSitePlans] = useState(false);
@@ -1344,8 +1339,7 @@
             const dipsData = liveDips || DIPS_DATA;
 
             const refreshDips = async () => {
-    if (dipsLoading) return;
-    setDipsLoading(true);
+                setDipsLoading(true);
                 const result = await fetchLiveDips(dipsTabName);
                 if (result && !result.error && result.length > 0) {
                     const merged = mergeDipsData(result);
