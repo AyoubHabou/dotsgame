@@ -1568,7 +1568,8 @@
                     });
                     if (stop.notes) email += `${stop.notes}\n`;
                     if (includeSitePlans && poData.siteplan) email += `Site Plan & Dip Chart: ${poData.siteplan}\n`;
-                    email += '\n';
+if (td.keyNote) email += `🔑 ${td.keyNote}\n`;
+email += '\n';
                 });
                 return email + 'Thank you and drive safe!';
             };
