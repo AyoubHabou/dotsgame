@@ -728,7 +728,7 @@
         // ==================== HELPERS ====================
         const createEmptyStop = () => ({
             id: Date.now() + Math.random(),
-            poNumber: '', terminal: '', pbNumber: '', lvNumber: '', notes: '',
+            poNumber: '', customPoNumber: '', terminal: '', pbNumber: '', lvNumber: '', notes: '',
             compartments: Array.from({length: 6}, () => ({ enabled: false, product: '', volume: 0, maxVolume: 0, assignedTank: '' }))
         });
         const isSingleCompartment = (t) => ['86','87','88','89'].includes(t);
@@ -1373,10 +1373,17 @@
             const removeStop = (id) => { if (stops.length > 1) setStops(stops.filter(s => s.id !== id)); };
 
             const updateStop = (stopId, field, value) => {
+                let villeMariePo = '';
+                if (field === 'poNumber' && value === 'VM-VILLEMARIE') {
+                    const hasPo = window.confirm('Do you have a PO number to add for Ville-Marie?\n\nOK = Yes    Cancel = No');
+                    if (hasPo) {
+                        villeMariePo = (window.prompt('Enter the PO number for Ville-Marie:', '') || '').trim();
+                    }
+                }
                 setStops(stops.map(stop => {
                     if (stop.id !== stopId) return stop;
                     if (field === 'poNumber') {
-                        return { ...stop, poNumber: value, _poSearch: '' };
+                        return { ...stop, poNumber: value, customPoNumber: value === 'VM-VILLEMARIE' ? villeMariePo : '', _poSearch: '' };
                     }
                     if (field === 'terminal' && trailerNumber) {
                         const isLocal = value && LOCAL_TERMINALS.includes(value);
@@ -1536,8 +1543,9 @@
                         email += `Customer: ${td.customer}\n`;
                         if (td.destination) email += `Destination: ${td.destination}\n`;
                         else if (td.account) email += `Account: ${td.account}\n`;
-                        const isRealPO = /^\d{5}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT');
-                        if (isRealPO) email += `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}\n`;
+                        const isRealPO = /^\d{5,6}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT');
+                        if (stop.customPoNumber) email += `PO #: ${stop.customPoNumber}\n`;
+                        else if (isRealPO) email += `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}\n`;
                         const prodList = Object.keys(td.products).filter(p => td.products[p]).map(p => `${p}: ${td.products[p]}`).join('    ');
                         if (prodList) email += `${prodList}\n`;
                         if (td.notes) email += `\n${td.notes}\n`;
@@ -1844,7 +1852,8 @@ email += '\n';
                     infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Customer</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.customer}</td></tr>`;
                     if (td.destination) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Destination</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.destination}</td></tr>`;
                     else if (td.account) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Account</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account}</td></tr>`;
-                    if (/^\d{4,5}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT')) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.poNumber}</td></tr>`;
+                    if (stop.customPoNumber) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">PO #</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.customPoNumber}</td></tr>`;
+                    else if (/^\d{4,6}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT')) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.poNumber}</td></tr>`;
                     stopsHtml += `<div style="margin-bottom:16px;border:1px solid #c8d8c8;border-radius:8px;overflow:hidden"><table style="width:100%;border-collapse:collapse"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:12px 16px;border-bottom:2px solid #1a3c1a"><table style="width:100%"><tr><td style="width:32px;vertical-align:middle"><div style="width:30px;height:30px;background:rgba(255,255,255,0.15);border-radius:50%;text-align:center;line-height:30px;font-weight:800;font-size:14px"><font color="#1a3c1a">${si+1}</font></div></td><td style="vertical-align:middle;padding-left:10px"><div style="font-size:15px;font-weight:700"><font color="#1a3c1a">${poData.name}</font></div></td></tr></table></td></tr></table><div style="padding:14px 16px"><table style="width:100%;border-collapse:collapse">${infoRows}</table><div style="margin-top:12px"><table style="width:100%;border-collapse:collapse;background:#f7faf7;border-radius:6px;border:1px solid #d4e4d4"><tr style="background:#e8f0e8"><td colspan="2" style="padding:8px 14px;font-size:11px;font-weight:800;color:#2d5a2d;text-transform:uppercase;letter-spacing:1px">Product Codes</td></tr>${prodRows}</table></div>${compsHtml}${extraHtml}${notesHtml}${siteplanHtml}</div></div>`;
                 });
                 return `<table cellpadding="0" cellspacing="0" border="0" width="600" align="left" style="max-width:600px;width:600px;font-family:Arial,sans-serif;border:1px solid #d4e4d4"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:22px 24px;text-align:center;border-bottom:3px solid #1a3c1a"><font color="#1a3c1a" size="2"><b style="text-transform:uppercase;letter-spacing:2px">Schooner Transport</b></font><br /><font color="#1a3c1a" size="5"><b>${isJetFuel ? 'Jet Fuel Plan' : 'Delivery Plan'}</b></font></td></tr><tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:18px 20px"><table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td width="33%" valign="top" style="padding:8px"><table cellpadding="8" cellspacing="0" border="1" bordercolor="#d4e4d4" bgcolor="#f7faf7" width="100%" style="border-collapse:collapse"><tr><td align="center"><font color="#6b8068" size="1">Driver</font><br /><b>${driverName}</b></td></tr></table></td><td width="33%" valign="top" style="padding:8px"><table cellpadding="8" cellspacing="0" border="1" bordercolor="#d4e4d4" bgcolor="#f7faf7" width="100%" style="border-collapse:collapse"><tr><td align="center"><font color="#6b8068" size="1">Truck / Trailer</font><br /><b>${truckNumber} / ${trailerNumber}</b></td></tr></table></td><td width="34%" valign="top" style="padding:8px"><table cellpadding="8" cellspacing="0" border="1" bordercolor="#d4e4d4" bgcolor="#f7faf7" width="100%" style="border-collapse:collapse"><tr><td align="center"><font color="#6b8068" size="1">Date</font><br /><b>${formatDate(deliveryDate)}</b></td></tr></table></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="padding-top:16px">${stopsHtml}</td></tr></table>${!isJetFuel && totalVol > 0 ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:8px"><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:14px;text-align:center;border-top:2px solid #1a3c1a"><font color="#1a3c1a" size="1"><b style="text-transform:uppercase;letter-spacing:1.5px">Total Volume</b></font><br /><font color="#1a3c1a" size="6"><b>${totalVol.toLocaleString()}L</b></font></td></tr></table>` : ''}</td></tr><tr><td bgcolor="#e8f0e8" style="background-color:#e8f0e8;padding:14px;text-align:center;border-top:2px solid #1a3c1a"><font color="#6b8068" size="2">Thank you and drive safe.</font><br /><font color="#1a5c2e" size="2"><b>Schooner Transport</b></font></td></tr></table>`;
@@ -2020,7 +2029,7 @@ email += '\n';
                                                 <input type="text" className="form-input" placeholder="🔍 Type to filter..." value={stop._poSearch || ''} onChange={e => updateStop(stop.id, '_poSearch', e.target.value)} style={{marginBottom:'0.25rem',fontSize:'0.75rem',padding:'0.35rem 0.5rem'}} />
                                                 <select className="form-select" value={stop.poNumber} onChange={e => updateStop(stop.id, 'poNumber', e.target.value)} size={stop._poSearch ? Math.min(10, [...Object.keys(PO_DATA)].filter(po => (po + ' ' + PO_DATA[po].name + ' ' + PO_DATA[po].address).toLowerCase().includes((stop._poSearch||'').toLowerCase())).length + 1) : 1}>
                                                     <option value="">Select PO...</option>
-                                                    {[...Object.keys(PO_DATA)].sort((a,b) => { if (a.startsWith('JET-') && !b.startsWith('JET-')) return -1; if (!a.startsWith('JET-') && b.startsWith('JET-')) return 1; return 0; }).filter(po => { const q = (stop._poSearch || '').toLowerCase(); if (!q) return true; return (po + ' ' + PO_DATA[po].name + ' ' + PO_DATA[po].address).toLowerCase().includes(q); }).map(po => <option key={po} value={po}>{(/^\d{4,5}$/.test(po) ? po + ' - ' : po.startsWith('UPT') ? po + ' - ' : '')}{PO_DATA[po].name}</option>)}
+                                                    {[...Object.keys(PO_DATA)].sort((a,b) => { if (a.startsWith('JET-') && !b.startsWith('JET-')) return -1; if (!a.startsWith('JET-') && b.startsWith('JET-')) return 1; return 0; }).filter(po => { const q = (stop._poSearch || '').toLowerCase(); if (!q) return true; return (po + ' ' + PO_DATA[po].name + ' ' + PO_DATA[po].address).toLowerCase().includes(q); }).map(po => <option key={po} value={po}>{(/^\d{4,6}$/.test(po) ? po + ' - ' : po.startsWith('UPT') ? po + ' - ' : '')}{PO_DATA[po].name}</option>)}
                                                 </select>
                                             </div>
                                             {stop.poNumber && PO_DATA[stop.poNumber]?.siteplan && (
