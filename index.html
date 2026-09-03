@@ -1025,8 +1025,9 @@
                 doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
                 doc.text(`Stop ${si+1}: ${poData.name}`, m+4, y+6); y += 12;
                 doc.setTextColor(15,23,42); doc.setFontSize(8); doc.setFont('helvetica','normal');
-                [`Terminal: ${stop.terminal}`, td.supplier ? `Supplier: ${td.supplier}` : null, `Customer: ${td.customer}`,
-                td.destination ? `Destination: ${td.destination}` : (td.account ? `Account: ${td.account}` : null),
+                [`Terminal: ${stop.terminal}`, td.supplier ? `Supplier: ${td.supplier}` : null,
+                td.account && td.customer === td.account ? `Account/Customer: ${td.account}` : `Customer: ${td.customer}`,
+                td.destination ? `Destination: ${td.destination}` : (td.account && td.customer !== td.account ? `Account: ${td.account}` : null),
                 td.badge ? `Badge: ${td.badge}` : null,
                 `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}`,`Products: ${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('  |  ')}`,
                 stop.pbNumber ? `PB: ${stop.pbNumber}` : null, stop.lvNumber ? `LV: ${stop.lvNumber}` : null
@@ -1552,9 +1553,10 @@
                         email += `${poData.name}\n`;
                         email += `Terminal: ${stop.terminal}\n`;
                         if (td.supplier) email += `Supplier: ${td.supplier}\n`;
-                        email += `Customer: ${td.customer}\n`;
+                        if (td.account && td.customer === td.account) email += `Account/Customer: ${td.account}\n`;
+                        else email += `Customer: ${td.customer}\n`;
                         if (td.destination) email += `Destination: ${td.destination}\n`;
-                        else if (td.account) email += `Account: ${td.account}\n`;
+                        else if (td.account && td.customer !== td.account) email += `Account: ${td.account}\n`;
                         if (td.badge) email += `Badge: ${td.badge}\n`;
                         const isRealPO = /^\d{5,6}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT');
                         if (stop.customPoNumber) email += `PO #: ${stop.customPoNumber}\n`;
@@ -1862,9 +1864,9 @@ email += '\n';
                     if (stop.lvNumber) extraHtml += `<span style="display:inline-block;padding:3px 10px;background:#f0f5f0;border:1px solid #d4e4d4;border-radius:4px;font-size:12px;font-weight:600;color:#2d5a2d">LV: ${stop.lvNumber}</span>`;
                     if (extraHtml) extraHtml = `<div style="margin-top:8px">${extraHtml}</div>`;
                     let infoRows = `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;width:95px;vertical-align:top">Terminal</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.terminal}</td></tr>`;
-                    infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Customer</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.customer}</td></tr>`;
+                    infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${td.account && td.customer === td.account ? 'Account/Customer' : 'Customer'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account && td.customer === td.account ? td.account : td.customer}</td></tr>`;
                     if (td.destination) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Destination</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.destination}</td></tr>`;
-                    else if (td.account) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Account</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account}</td></tr>`;
+                    else if (td.account && td.customer !== td.account) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Account</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account}</td></tr>`;
                     if (td.badge) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Badge</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.badge}</td></tr>`;
                     if (stop.customPoNumber) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">PO #</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.customPoNumber}</td></tr>`;
                     else if (/^\d{4,6}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT')) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.poNumber}</td></tr>`;
