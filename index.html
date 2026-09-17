@@ -237,19 +237,6 @@
             '52709': { supplier: 'Valero - ULT', customer: '8124105', account: '210652709', badge: '210652709', loadingPo: '52709', restrictProducts: true, products: { E15: 'E15TTV', 'Clear Diesel': 'ULSON1' } },
             '52710': { supplier: 'Valero - ULT', customer: '8124105', account: '210652710', badge: '210652710', loadingPo: '52710', restrictProducts: true, products: { E15: 'E15TTV', Premium: 'P10TTV', 'Clear Diesel': 'ULSON1' } }
         };
-        const SPLIT_IOL_TERMINALS = {
-            '41403': { supplier: 'Valero - ULT', customer: '342070322', account: '342070', badge: '41403', restrictProducts: true, products: { Premium: '128427' } },
-            '41470': { supplier: 'Valero - ULT', customer: '342070726', account: '342070', badge: '41470', restrictProducts: true, products: { Premium: '128427' } },
-            '41511': { supplier: 'Valero - ULT', customer: '342070278', account: '342070', badge: '41511', restrictProducts: true, products: { Premium: '128427' } },
-            '41903': { supplier: 'Valero - ULT', customer: '342070903', account: '342070', badge: '41903', restrictProducts: true, products: { Premium: '128427' } },
-            '41909': { supplier: 'Valero - ULT', customer: '342070753', account: '342070', badge: '41909', restrictProducts: true, products: { Premium: '128427' } },
-            '41916': { supplier: 'Valero - ULT', customer: '342070916', account: '342070', badge: '41916', restrictProducts: true, products: { Premium: '128427' } },
-            '41934': { supplier: 'Valero - ULT', customer: '342070353', account: '342070', badge: '41934', restrictProducts: true, products: { Premium: '128427' } },
-            '42222': { supplier: 'Valero - ULT', customer: '342070223', account: '342070', badge: '42222', restrictProducts: true, products: { Premium: '128427' } },
-            '42445': { supplier: 'Valero - ULT', customer: '342070611', account: '342070', badge: '42445', restrictProducts: true, products: { Premium: '128427' } },
-            '52698': { supplier: 'Valero - ULT', customer: '342070761', account: '342070', badge: '41908', restrictProducts: true, products: { Premium: '128427' } },
-            '52709': { supplier: 'Valero - ULT', customer: '342070388', account: '342070', badge: '41900', restrictProducts: true, products: { Premium: '128427' } }
-        };
         const E10_IOL_UPDATES = {
             '11036': { supplier: 'Valero - ULT', customer: '342087', account: '342070', destination: null, badge: '342082767', products: { E10: '105373', Premium: '126280', 'Clear Diesel': '123873' } },
             '11057': { supplier: 'Valero - ULT', customer: '342087', account: '342070', destination: null, badge: '342082767', products: { E10: '105373', Premium: '126280', 'Clear Diesel': '123873' } },
@@ -260,15 +247,9 @@
         Object.entries(MAITLAND_SITE_TERMINALS).forEach(([po, terminalData]) => {
             PO_DATA[po].terminals['Valero Maitland'] = terminalData;
         });
-        Object.entries(SPLIT_IOL_TERMINALS).forEach(([po, terminalData]) => {
-            PO_DATA[po].terminals['IOL Ottawa'] = terminalData;
-        });
         Object.entries(E10_IOL_UPDATES).forEach(([po, terminalData]) => {
             const current = PO_DATA[po].terminals['IOL Ottawa'] || {};
             PO_DATA[po].terminals['IOL Ottawa'] = { ...current, ...terminalData, products: { ...(current.products || {}), ...terminalData.products } };
-        });
-        ['41926', '42370', '43319', '52210', '52710'].forEach(po => {
-            delete PO_DATA[po].terminals['IOL Ottawa'];
         });
 
         // ==================== GOOGLE SHEETS LIVE ====================
