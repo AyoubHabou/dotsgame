@@ -221,6 +221,7 @@
         // COOP Embrun output-only display rules.
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].hideProductSummary = true;
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].loadProductLabels = { 'Reg Gas': 'E15' };
+        PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].boldNoteLabels = true;
         const getLoadProductLabel = (stop, product) => {
             const terminalData = PO_DATA[stop.poNumber]?.terminals?.[stop.terminal];
             return terminalData?.loadProductLabels?.[product] || product;
@@ -864,6 +865,25 @@
         // Find dips data for a PO number
         const findDipsForPO = (poNum) => DIPS_DATA.find(d => d.po === poNum);
 
+        // Known unloading tanks for sites that do not have dip/capacity data.
+        const SITE_TANK_ASSIGNMENTS = {
+            'EM-EMBRUN': [
+                'STOVE (1)',
+                'FURNACE (2)',
+                'DYED DIESEL / FURNACE (3)',
+                'DYED DIESEL / FURNACE (4)',
+                'CLEAR DIESEL (5)',
+                'CLEAR DIESEL (6)',
+                'REG (7)',
+                'SUPER / PREMIUM (8)'
+            ]
+        };
+        const getTankNamesForPO = (poNum) => {
+            if (SITE_TANK_ASSIGNMENTS[poNum]) return SITE_TANK_ASSIGNMENTS[poNum];
+            const dip = findDipsForPO(poNum);
+            return dip ? Object.keys(dip.latestData) : [];
+        };
+
         // Map a dip tank name → dispatch product name
         // Rule from ops: any "DIESEL" tank at a gas station = Clear Diesel (not dyed)
         const mapDipProductToDispatch = (dipName) => {
@@ -1501,12 +1521,9 @@
                     const mv = tc[trailerNumber]?.products[product]?.[compIndex] || 0;
                     nc[compIndex] = { ...nc[compIndex], product, maxVolume: mv, volume: mv, assignedTank: '' };
                     // Auto-assign if only one matching tank
-                    const autoDip = findDipsForPO(stop.poNumber);
-                    if (autoDip) {
-                        const autoType = getProductType(product);
-                        const autoTanks = Object.keys(autoDip.latestData).filter(k => matchProductToTank(autoType, k));
-                        if (autoTanks.length === 1) nc[compIndex].assignedTank = autoTanks[0];
-                    }
+                    const autoType = getProductType(product);
+                    const autoTanks = getTankNamesForPO(stop.poNumber).filter(k => matchProductToTank(autoType, k));
+                    if (autoTanks.length === 1) nc[compIndex].assignedTank = autoTanks[0];
                     return { ...stop, compartments: nc };
                 }));
             };
@@ -1533,10 +1550,8 @@
             };
 
             const getMatchingTanks = (poNumber, product) => {
-                const dip = findDipsForPO(poNumber);
-                if (!dip) return [];
                 const type = getProductType(product);
-                return Object.keys(dip.latestData).filter(k => matchProductToTank(type, k));
+                return getTankNamesForPO(poNumber).filter(k => matchProductToTank(type, k));
             };
 
             const totalVolume = useMemo(() => stops.reduce((s, st) => s + st.compartments.reduce((ss, c) => ss + (c.enabled ? c.volume : 0), 0), 0), [stops]);
@@ -1620,19 +1635,16 @@
                         if (c.enabled && c.volume > 0) {
                             let tankLabel = '';
                             if (c.assignedTank && stop.poNumber) {
-                                const eDip = findDipsForPO(stop.poNumber);
-                                if (eDip) {
-                                    const eType = getProductType(c.product);
-                                    const eMatching = Object.keys(eDip.latestData).filter(k => matchProductToTank(eType, k));
-                                    const tankNumMatch = c.assignedTank.match(/\((\d+)\)/);
-                                    if (tankNumMatch) {
-                                        tankLabel = ' → Tank ' + tankNumMatch[1];
-                                    } else if (eMatching.length > 1) {
-                                        const tankNum = eMatching.findIndex(k => k.toLowerCase() === c.assignedTank.toLowerCase()) + 1;
-                                        tankLabel = tankNum > 0 ? ' → Tank ' + tankNum : '';
-                                    } else if (eMatching.length === 1 && eMatching[0].match(/\((\d+)\)/)) {
-                                        tankLabel = ' → Tank ' + eMatching[0].match(/\((\d+)\)/)[1];
-                                    }
+                                const eType = getProductType(c.product);
+                                const eMatching = getTankNamesForPO(stop.poNumber).filter(k => matchProductToTank(eType, k));
+                                const tankNumMatch = c.assignedTank.match(/\((\d+)\)/);
+                                if (tankNumMatch) {
+                                    tankLabel = ' → Tank ' + tankNumMatch[1];
+                                } else if (eMatching.length > 1) {
+                                    const tankNum = eMatching.findIndex(k => k.toLowerCase() === c.assignedTank.toLowerCase()) + 1;
+                                    tankLabel = tankNum > 0 ? ' → Tank ' + tankNum : '';
+                                } else if (eMatching.length === 1 && eMatching[0].match(/\((\d+)\)/)) {
+                                    tankLabel = ' → Tank ' + eMatching[0].match(/\((\d+)\)/)[1];
                                 }
                             }
                             email += `${i+1} - ${c.volume.toLocaleString()} ${getLoadProductLabel(stop, c.product)}${tankLabel}\n`;
@@ -1662,7 +1674,7 @@ email += '\n';
                          if (prod.startsWith('dyed diesel'))
                             return '<span style="background-color:#22C55E;color:#fff;padding:1px 3px">' + esc + '<' + '/span>';
                     }
-                    const lm = esc.match(/^([A-Za-z][A-Za-z0-9 #]*): (.*)$/);
+                    const lm = esc.match(/^([A-Za-z][A-Za-z0-9 #/]*): (.*)$/);
                     if (lm) {
                         return '<span style="font-weight:600">' + lm[1] + ':<' + '/span> ' + lm[2];
                     }
@@ -1886,10 +1898,12 @@ email += '\n';
                         let compRows = activeComps.map(c => {
                             let tankLabel = '';
                             if (c.assignedTank && stop.poNumber) {
-                                const eDip = findDipsForPO(stop.poNumber);
-                                if (eDip) {
+                                const tankNumMatch = c.assignedTank.match(/\((\d+)\)/);
+                                if (tankNumMatch) {
+                                    tankLabel = ` <span style="color:#6b8068">&rarr; Tank ${tankNumMatch[1]}</span>`;
+                                } else {
                                     const eType = getProductType(c.product);
-                                    const eMatching = Object.keys(eDip.latestData).filter(k => matchProductToTank(eType, k));
+                                    const eMatching = getTankNamesForPO(stop.poNumber).filter(k => matchProductToTank(eType, k));
                                     if (eMatching.length > 1) {
                                         const tankNum = eMatching.findIndex(k => k.toLowerCase() === c.assignedTank.toLowerCase()) + 1;
                                         tankLabel = tankNum > 0 ? ` <span style="color:#6b8068">&rarr; Tank ${tankNum}</span>` : '';
@@ -1905,7 +1919,10 @@ email += '\n';
                     }
                     let notesHtml = '';
                     if (td.supplier) notesHtml += `<div style="margin-top:8px;padding:7px 12px;background:#f0f5f0;border-radius:4px;font-size:12px;color:#2d5a2d"><b>Supplier:</b> ${td.supplier}</div>`;
-                    if (td.notes) notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#fff8ee;border-left:3px solid #d4a017;border-radius:0 4px 4px 0;font-size:12px;color:#7a5c00;white-space:pre-line">${td.notes}</div>`;
+                    if (td.notes) {
+                        const formattedNotes = td.boldNoteLabels ? td.notes.replace(/^([A-Za-z][A-Za-z0-9 #/&]*):/gm, '<b>$1:</b>') : td.notes;
+                        notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#fff8ee;border-left:3px solid #d4a017;border-radius:0 4px 4px 0;font-size:12px;color:#7a5c00;white-space:pre-line">${formattedNotes}</div>`;
+                    }
                     if (td.keyNote) notesHtml += `<div style=\"margin-top:8px;padding:8px 12px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:0 4px 4px 0;font-size:12px;color:#1e40af;white-space:pre-line\">&#x1F511; ${td.keyNote}</div>`;
                     if (stop.notes) notesHtml += `<div style="margin-top:8px;padding:8px 12px;background:#f0f7f0;border-left:3px solid #2d7a3a;border-radius:0 4px 4px 0;font-size:12px;color:#1a4a1a">&#x1F4DD; ${stop.notes}</div>`;
                     let siteplanHtml = poData.siteplan ? `<div style="margin-top:10px"><a href="${poData.siteplan}" style="display:inline-block;padding:7px 16px;background:#f0f7f0;border:1px solid #b8d4b8;border-radius:6px;color:#1a5c2e;font-size:12px;font-weight:700;text-decoration:none">&#x1F4CE; Site Plan & Dip Chart</a></div>` : '';
