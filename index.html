@@ -223,9 +223,14 @@
         // product-code summary already included in the site's detailed notes.
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].hideProductSummary = true;
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].loadProductLabels = { 'Reg Gas': 'E15' };
+        PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].loadTankLabels = { 'Reg Gas': 'Tank 7' };
         const getLoadProductLabel = (stop, product) => {
             const terminalData = PO_DATA[stop.poNumber]?.terminals?.[stop.terminal];
             return terminalData?.loadProductLabels?.[product] || product;
+        };
+        const getLoadTankLabel = (stop, product) => {
+            const terminalData = PO_DATA[stop.poNumber]?.terminals?.[stop.terminal];
+            return terminalData?.loadTankLabels?.[product] || '';
         };
 
         // Lift directions effective September 2026.
@@ -1084,7 +1089,7 @@
                 doc.setFont('helvetica','bold'); doc.setFontSize(7);
                 doc.text('Comp', m+4, y+4.5); doc.text('Product', m+25, y+4.5); doc.text('Volume (L)', m+80, y+4.5); y += 8;
                 doc.setFont('helvetica','normal');
-                stop.compartments.forEach((c, ci) => { if (c.enabled && c.volume > 0) { doc.text(`C${ci+1}`, m+6, y); doc.text(getLoadProductLabel(stop, c.product), m+25, y); doc.text(c.volume.toLocaleString(), m+80, y); y += 4.5; }});
+                stop.compartments.forEach((c, ci) => { if (c.enabled && c.volume > 0) { const fixedTank = getLoadTankLabel(stop, c.product); doc.text(`C${ci+1}`, m+6, y); doc.text(`${getLoadProductLabel(stop, c.product)}${fixedTank ? ` ${fixedTank}` : ''}`, m+25, y); doc.text(c.volume.toLocaleString(), m+80, y); y += 4.5; }});
                 const st = stop.compartments.reduce((s,c)=>s+(c.enabled?c.volume:0),0);
                 doc.setFont('helvetica','bold'); doc.text(`Stop Total: ${st.toLocaleString()} L`, m+60, y); y += 4;
                 if (stop.notes) { doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.text(`Notes: ${stop.notes}`, m+4, y); y += 4.5; }
@@ -1637,6 +1642,10 @@
                                     }
                                 }
                             }
+                            if (!tankLabel) {
+                                const fixedTank = getLoadTankLabel(stop, c.product);
+                                if (fixedTank) tankLabel = ` ${fixedTank}`;
+                            }
                             email += `${i+1} - ${c.volume.toLocaleString()} ${getLoadProductLabel(stop, c.product)}${tankLabel}\n`;
                         }
                     });
@@ -1897,6 +1906,10 @@ email += '\n';
                                         tankLabel = tankNum > 0 ? ` <span style="color:#6b8068">&rarr; Tank ${tankNum}</span>` : '';
                                     }
                                 }
+                            }
+                            if (!tankLabel) {
+                                const fixedTank = getLoadTankLabel(stop, c.product);
+                                if (fixedTank) tankLabel = ` <span style="color:#6b8068">${fixedTank}</span>`;
                             }
                             const ci = stop.compartments.indexOf(c);
                             const pc = c.product === 'Reg Gas' ? '#2d7a3a' : c.product === 'Super' ? '#b8860b' : c.product === 'Diesel' ? '#2563eb' : c.product === 'Dyed Diesel' ? '#7c3aed' : '#4a5e4a';
