@@ -246,6 +246,15 @@
             '52709': { supplier: 'Valero - ULT', customer: '8124105', account: '210652709', badge: '210652709', loadingPo: '52709', restrictProducts: true, products: { E15: 'E15TTV', 'Clear Diesel': 'ULSON1' } },
             '52710': { supplier: 'Valero - ULT', customer: '8124105', account: '210652710', badge: '210652710', loadingPo: '52710', restrictProducts: true, products: { E15: 'E15TTV', Premium: 'P10TTV', 'Clear Diesel': 'ULSON1' } }
         };
+        // Only sites listed once with Maitland as their sole primary terminal.
+        // Split-terminal P93 sites (for example 42222) are intentionally excluded.
+        const PRIMARY_TERMINALS = {
+            '41926': 'Valero Maitland',
+            '42370': 'Valero Maitland',
+            '43319': 'Valero Maitland',
+            '52210': 'Valero Maitland',
+            '52710': 'Valero Maitland'
+        };
         Object.entries(MAITLAND_SITE_TERMINALS).forEach(([po, terminalData]) => {
             PO_DATA[po].terminals['Valero Maitland'] = terminalData;
         });
@@ -1449,7 +1458,7 @@
                 setStops(stops.map(stop => {
                     if (stop.id !== stopId) return stop;
                     if (field === 'poNumber') {
-                        return { ...stop, poNumber: value, customPoNumber: value === 'VM-VILLEMARIE' ? villeMariePo : '', _poSearch: '' };
+                        return { ...stop, poNumber: value, terminal: PRIMARY_TERMINALS[value] || '', customPoNumber: value === 'VM-VILLEMARIE' ? villeMariePo : '', _poSearch: '' };
                     }
                     if (field === 'terminal' && trailerNumber) {
                         const isLocal = value && LOCAL_TERMINALS.includes(value);
@@ -2112,6 +2121,11 @@ email += '\n';
                                             {stop.poNumber && (<>
                                                 {/* INLINE DIP CARD */}
                                                 <div className="form-group form-group-full"><InlineDipCard poNumber={stop.poNumber} loadedProducts={loadedProducts} /></div>
+                                                {PRIMARY_TERMINALS[stop.poNumber] && (
+                                                    <div className="form-group form-group-full" style={{marginBottom:'-0.25rem',fontSize:'0.6875rem',fontWeight:700,color:'#047857'}}>
+                                                        Primary terminal: Maitland
+                                                    </div>
+                                                )}
                                                 <div className="form-group form-group-full"><label className="form-label form-label-required">Terminal</label>
                                                     <select className="form-select" value={stop.terminal} onChange={e => updateStop(stop.id, 'terminal', e.target.value)}>
                                                         <option value="">Select Terminal...</option>
