@@ -246,19 +246,8 @@
             '52709': { supplier: 'Valero - ULT', customer: '8124105', account: '210652709', badge: '210652709', loadingPo: '52709', restrictProducts: true, products: { E15: 'E15TTV', 'Clear Diesel': 'ULSON1' } },
             '52710': { supplier: 'Valero - ULT', customer: '8124105', account: '210652710', badge: '210652710', loadingPo: '52710', restrictProducts: true, products: { E15: 'E15TTV', Premium: 'P10TTV', 'Clear Diesel': 'ULSON1' } }
         };
-        const E10_IOL_UPDATES = {
-            '11036': { supplier: 'Valero - ULT', customer: '342087', account: '342070', destination: null, badge: '342082767', products: { E10: '105373', Premium: '126280', 'Clear Diesel': '123873' } },
-            '11057': { supplier: 'Valero - ULT', customer: '342087', account: '342070', destination: null, badge: '342082767', products: { E10: '105373', Premium: '126280', 'Clear Diesel': '123873' } },
-            '11058': { supplier: 'Valero - ULT', customer: '342087', account: '342070', destination: null, badge: '342082767', products: { E10: '105373', Premium: '126280', 'Clear Diesel': '123873' } },
-            '21820': { supplier: 'Valero - ULT', customer: '342087', account: '342070', destination: null, badge: '342082767', products: { E10: '105373', Premium: '126280', 'Clear Diesel': '123873' } },
-            '52341': { supplier: 'Valero - ULT', customer: '342070611', account: '342070', destination: null, badge: '342082767', products: { E10: '105373', Premium: '126280', 'Clear Diesel': '123873' } }
-        };
         Object.entries(MAITLAND_SITE_TERMINALS).forEach(([po, terminalData]) => {
             PO_DATA[po].terminals['Valero Maitland'] = terminalData;
-        });
-        Object.entries(E10_IOL_UPDATES).forEach(([po, terminalData]) => {
-            const current = PO_DATA[po].terminals['IOL Ottawa'] || {};
-            PO_DATA[po].terminals['IOL Ottawa'] = { ...current, ...terminalData, products: { ...(current.products || {}), ...terminalData.products } };
         });
 
         // ==================== GOOGLE SHEETS LIVE ====================
