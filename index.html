@@ -222,10 +222,28 @@
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].hideProductSummary = true;
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].loadProductLabels = { 'Reg Gas': 'E15' };
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].boldNoteLabels = true;
+        const getRegularGasGrade = (terminalData) => {
+            const products = terminalData?.products || {};
+            // If both are available, E15 is the selected Parkland option for R&P.
+            if (products.E15) return 'E15';
+            if (products.E10) return 'E10';
+            const codes = Object.values(products).join(' ').toUpperCase();
+            if (codes.includes('E15')) return 'E15';
+            if (codes.includes('E10')) return 'E10';
+            return '';
+        };
         const getLoadProductLabel = (stop, product) => {
             const terminalData = getTerminalDataForStop(stop);
-            return terminalData?.loadProductLabels?.[product] || product;
+            const customLabel = terminalData?.loadProductLabels?.[product];
+            if (customLabel) return customLabel;
+            if (product === 'Reg Gas') {
+                const grade = getRegularGasGrade(terminalData);
+                return grade ? `${grade} Reg Gas` : product;
+            }
+            return product;
         };
+        const getDispatchProductOptionLabel = (product) =>
+            product === 'Super Gas' ? 'Premium' : product;
 
         // R&P Petroleum has two Maitland loading accounts. Valero is the normal
         // account; Parkland is selected only when R&P asks for E15.
@@ -1708,6 +1726,8 @@ email += '\n';
                     const m = line.match(/^(\d+) - ([\d,]+) (.+)$/);
                     if (m) {
                         const prod = m[3].toLowerCase();
+                        if (prod.startsWith('e15 reg gas'))
+                            return esc.replace(/^(\d+ - [\d,]+ )E15( Reg Gas.*)$/, '$1<span style="font-weight:800">E15</span>$2');
                         if (prod.startsWith('super gas'))
                             return '<span style="color:#DC2626;font-weight:bold">' + esc + '<' + '/span>';
                         if (prod.startsWith('clear diesel'))
@@ -2228,7 +2248,7 @@ email += '\n';
                                                                     if (stationAllowedProducts && !stationAllowedProducts.has(p)) return false;
                                                                     if (terminalAllowedProducts && !terminalAllowedProducts.has(p)) return false;
                                                                     return true;
-                                                                }).map(p => <option key={p} value={p}>{p}</option>)}
+                                                                }).map(p => <option key={p} value={p}>{getDispatchProductOptionLabel(p)}</option>)}
                                                             </select></div>
                                                             <div className="compartment-volume"><input type="number" className={`compartment-volume-input ${isOverStandard ? 'over-standard' : ''}`} value={comp.volume} onChange={e => updateCompartmentVolume(stop.id, ci, e.target.value)} max={(() => { if (canExceed) return gasMax; const dov = DIESEL_PRODUCTS.includes(comp.product) ? getDieselMaxOverride(trailerNumber, ci) : null; return (dov && dov > comp.maxVolume) ? dov : comp.maxVolume; })()} /></div>
                                                             <div className="compartment-max">{(() => { if (canExceed) return `Max: ${comp.maxVolume.toLocaleString()}L`; const dov = DIESEL_PRODUCTS.includes(comp.product) ? getDieselMaxOverride(trailerNumber, ci) : null; return `Max: ${((dov && dov > comp.maxVolume) ? dov : comp.maxVolume).toLocaleString()}L`; })()}
