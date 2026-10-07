@@ -223,9 +223,49 @@
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].loadProductLabels = { 'Reg Gas': 'E15' };
         PO_DATA['EM-EMBRUN'].terminals['Valero Montréal'].boldNoteLabels = true;
         const getLoadProductLabel = (stop, product) => {
-            const terminalData = PO_DATA[stop.poNumber]?.terminals?.[stop.terminal];
+            const terminalData = getTerminalDataForStop(stop);
             return terminalData?.loadProductLabels?.[product] || product;
         };
+
+        // R&P Petroleum has two Maitland loading accounts. Valero is the normal
+        // account; Parkland is selected only when R&P asks for E15.
+        PO_DATA['RP-PETROLEUM'] = {
+            name: 'R&P Petroleum, 690 Stewart Blvd, Brockville, Ont.',
+            address: '690 Stewart Blvd, Brockville, Ont.',
+            terminals: {
+                'Valero Maitland': {
+                    supplier: 'Valero - ULT',
+                    loadingPo: 'n/a',
+                    notes: 'Diesel in lead & small "reg" tank in lead.',
+                    defaultLoadingAccount: 'valero',
+                    loadingAccounts: {
+                        valero: {
+                            label: 'Valero (default)',
+                            customer: 'Valero 8124101',
+                            account: '20086625',
+                            products: { E10: 'E10LDA', Premium: 'P10LDA', 'Clear Diesel': 'ULSON1' }
+                        },
+                        parkland: {
+                            label: 'Parkland (use when E15 is requested)',
+                            customer: 'Parkland 8124105',
+                            account: '1003752',
+                            products: { E10: 'E10LDA', E15: 'E15LDA', Premium: 'P10LDA', 'Clear Diesel': 'ULSON1' }
+                        }
+                    }
+                }
+            }
+        };
+        const getTerminalDataForStop = (stop) => {
+            const terminalData = PO_DATA[stop.poNumber]?.terminals?.[stop.terminal];
+            if (!terminalData) return null;
+            const accountKey = stop.maitlandAccount || terminalData.defaultLoadingAccount;
+            const accountData = terminalData.loadingAccounts?.[accountKey];
+            return accountData ? { ...terminalData, ...accountData, products: { ...accountData.products } } : terminalData;
+        };
+        const getAccountLabel = (stop, terminalData) =>
+            stop.terminal === 'Valero Maitland' ? 'Account' : (terminalData.badge === terminalData.account ? 'Account/Badge' : 'Account');
+        const shouldShowBadge = (stop, terminalData) =>
+            stop.terminal !== 'Valero Maitland' && terminalData.badge && terminalData.badge !== terminalData.account;
 
         // Lift directions effective September 2026.
         const MAITLAND_SITE_TERMINALS = {
@@ -253,7 +293,8 @@
             '42370': 'Valero Maitland',
             '43319': 'Valero Maitland',
             '52210': 'Valero Maitland',
-            '52710': 'Valero Maitland'
+            '52710': 'Valero Maitland',
+            'RP-PETROLEUM': 'Valero Maitland'
         };
         Object.entries(MAITLAND_SITE_TERMINALS).forEach(([po, terminalData]) => {
             PO_DATA[po].terminals['Valero Maitland'] = terminalData;
@@ -769,7 +810,7 @@
         // ==================== HELPERS ====================
         const createEmptyStop = () => ({
             id: Date.now() + Math.random(),
-            poNumber: '', customPoNumber: '', terminal: '', pbNumber: '', lvNumber: '', notes: '',
+            poNumber: '', customPoNumber: '', terminal: '', maitlandAccount: '', pbNumber: '', lvNumber: '', notes: '',
             compartments: Array.from({length: 6}, () => ({ enabled: false, product: '', volume: 0, maxVolume: 0, assignedTank: '' }))
         });
         const isSingleCompartment = (t) => ['86','87','88','89'].includes(t);
@@ -1080,7 +1121,7 @@
             stops.forEach((stop, si) => {
                 if (!stop.poNumber) return;
                 const poData = PO_DATA[stop.poNumber]; if (!poData) return;
-                const td = poData.terminals[stop.terminal]; if (!td) return;
+                const td = getTerminalDataForStop(stop); if (!td) return;
                 if (y > 235) { doc.addPage(); y = m; }
                 doc.setFillColor(30,95,140); doc.roundedRect(m,y,pw-2*m,8,2,2,'F');
                 doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
@@ -1088,8 +1129,8 @@
                 doc.setTextColor(15,23,42); doc.setFontSize(8); doc.setFont('helvetica','normal');
                 [`Terminal: ${stop.terminal}`, td.supplier ? `Supplier: ${td.supplier}` : null,
                 td.account && td.customer === td.account ? `Account/Customer: ${td.account}` : `Customer: ${td.customer}`,
-                td.destination ? `Destination: ${td.destination}` : (td.account && td.customer !== td.account ? `${td.badge === td.account ? 'Account/Badge' : 'Account'}: ${td.account}` : null),
-                td.badge && td.badge !== td.account ? `Badge: ${td.badge}` : null,
+                td.destination ? `Destination: ${td.destination}` : (td.account && td.customer !== td.account ? `${getAccountLabel(stop, td)}: ${td.account}` : null),
+                shouldShowBadge(stop, td) ? `Badge: ${td.badge}` : null,
                 td.loadingPo ? `PO #: ${td.loadingPo}` : `${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}: ${stop.poNumber}`,
                 td.hideProductSummary ? null : `Products: ${Object.keys(td.products).map(p=>`${p}: ${td.products[p]}`).join('  |  ')}`,
                 stop.pbNumber ? `PB: ${stop.pbNumber}` : null, stop.lvNumber ? `LV: ${stop.lvNumber}` : null
@@ -1458,7 +1499,9 @@
                 setStops(stops.map(stop => {
                     if (stop.id !== stopId) return stop;
                     if (field === 'poNumber') {
-                        return { ...stop, poNumber: value, terminal: PRIMARY_TERMINALS[value] || '', customPoNumber: value === 'VM-VILLEMARIE' ? villeMariePo : '', _poSearch: '' };
+                        const primaryTerminal = PRIMARY_TERMINALS[value] || '';
+                        const defaultLoadingAccount = PO_DATA[value]?.terminals?.[primaryTerminal]?.defaultLoadingAccount || '';
+                        return { ...stop, poNumber: value, terminal: primaryTerminal, maitlandAccount: defaultLoadingAccount, customPoNumber: value === 'VM-VILLEMARIE' ? villeMariePo : '', _poSearch: '' };
                     }
                     if (field === 'terminal' && trailerNumber) {
                         const isLocal = value && LOCAL_TERMINALS.includes(value);
@@ -1601,7 +1644,7 @@
                 stops.forEach((stop) => {
                     if (!stop.poNumber) return;
                     const poData = PO_DATA[stop.poNumber]; if (!poData) return;
-                    const td = poData.terminals[stop.terminal]; if (!td) return;
+                    const td = getTerminalDataForStop(stop); if (!td) return;
                     if (stop.poNumber.startsWith('JET-')) {
                      const custName = stop.poNumber === 'JET-VALERO' ? 'VALERO' : stop.poNumber === 'JET-PORTER' ? 'PORTER AIRLINES INC' : 'AIR CANADA';
                         email += `================================\n`;
@@ -1617,8 +1660,8 @@
                         if (td.account && td.customer === td.account) email += `Account/Customer: ${td.account}\n`;
                         else email += `Customer: ${td.customer}\n`;
                         if (td.destination) email += `Destination: ${td.destination}\n`;
-                        else if (td.account && td.customer !== td.account) email += `${td.badge === td.account ? 'Account/Badge' : 'Account'}: ${td.account}\n`;
-                        if (td.badge && td.badge !== td.account) email += `Badge: ${td.badge}\n`;
+                        else if (td.account && td.customer !== td.account) email += `${getAccountLabel(stop, td)}: ${td.account}\n`;
+                        if (shouldShowBadge(stop, td)) email += `Badge: ${td.badge}\n`;
                         const isRealPO = /^\d{5,6}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT');
                         if (td.loadingPo) email += `PO #: ${td.loadingPo}\n`;
                         else if (stop.customPoNumber) email += `PO #: ${stop.customPoNumber}\n`;
@@ -1874,7 +1917,7 @@ email += '\n';
                 let stopsHtml = '';
                 stopList.forEach((stop, si) => {
                     const poData = PO_DATA[stop.poNumber];
-                    const td = poData.terminals[stop.terminal];
+                    const td = getTerminalDataForStop(stop);
                     if (stop.poNumber.startsWith('JET-')) {
                         const isValero = stop.poNumber === 'JET-VALERO';
                         const isPorter = stop.poNumber === 'JET-PORTER';
@@ -1931,8 +1974,8 @@ email += '\n';
                     let infoRows = `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;width:95px;vertical-align:top">Terminal</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.terminal}</td></tr>`;
                     infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${td.account && td.customer === td.account ? 'Account/Customer' : 'Customer'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account && td.customer === td.account ? td.account : td.customer}</td></tr>`;
                     if (td.destination) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Destination</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.destination}</td></tr>`;
-                    else if (td.account && td.customer !== td.account) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${td.badge === td.account ? 'Account/Badge' : 'Account'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account}</td></tr>`;
-                    if (td.badge && td.badge !== td.account) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Badge</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.badge}</td></tr>`;
+                    else if (td.account && td.customer !== td.account) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${getAccountLabel(stop, td)}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.account}</td></tr>`;
+                    if (shouldShowBadge(stop, td)) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">Badge</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.badge}</td></tr>`;
                     if (td.loadingPo) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">PO #</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${td.loadingPo}</td></tr>`;
                     else if (stop.customPoNumber) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">PO #</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.customPoNumber}</td></tr>`;
                     else if (/^\d{4,6}$/.test(stop.poNumber) || stop.poNumber.startsWith('UPT')) infoRows += `<tr><td style="padding:4px 0;font-size:12px;color:#6b8068;vertical-align:top">${stop.poNumber.startsWith('UPT') ? 'UPT Site' : 'PO #'}</td><td style="padding:4px 0;font-size:13px;font-weight:700;color:#0f1f0f">${stop.poNumber}</td></tr>`;
@@ -2098,6 +2141,7 @@ email += '\n';
                                     const loadedProducts = getLoadedProductsForStop(stop);
                                     const stationAllowedProducts = stop.poNumber ? getStationAllowedProducts(stop.poNumber) : null;
                                     const terminalAllowedProducts = stop.poNumber && stop.terminal ? getTerminalAllowedProducts(stop.poNumber, stop.terminal) : null;
+                                    const maitlandAccounts = PO_DATA[stop.poNumber]?.terminals?.[stop.terminal]?.loadingAccounts;
 
                                     return (<div key={stop.id} className="stop-card">
                                         <div className="stop-header">
@@ -2132,6 +2176,13 @@ email += '\n';
                                                         {Object.keys(PO_DATA[stop.poNumber]?.terminals || {}).map(t => <option key={t} value={t}>{t}{LOCAL_TERMINALS.includes(t) ? ' (Local)' : ''}</option>)}
                                                     </select>
                                                 </div>
+                                                {maitlandAccounts && (
+                                                    <div className="form-group form-group-full"><label className="form-label form-label-required">Maitland Loading Account</label>
+                                                        <select className="form-select" value={stop.maitlandAccount || ''} onChange={e => updateStop(stop.id, 'maitlandAccount', e.target.value)}>
+                                                            {Object.entries(maitlandAccounts).map(([key, account]) => <option key={key} value={key}>{account.label}</option>)}
+                                                        </select>
+                                                    </div>
+                                                )}
                                                 <div className="form-group"><label className="form-label">PB Number</label><input type="text" className="form-input" placeholder="PB#" value={stop.pbNumber} onChange={e => updateStop(stop.id, 'pbNumber', e.target.value)} /></div>
                                                 <div className="form-group"><label className="form-label">LV Number</label><input type="text" className="form-input" placeholder="LV#" value={stop.lvNumber} onChange={e => updateStop(stop.id, 'lvNumber', e.target.value)} /></div>
                                                 <div className="form-group form-group-full"><label className="form-label">Notes</label><textarea className="form-textarea" placeholder="Special instructions..." value={stop.notes} onChange={e => updateStop(stop.id, 'notes', e.target.value)} /></div>
